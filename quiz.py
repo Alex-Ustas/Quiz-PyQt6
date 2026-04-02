@@ -3,7 +3,7 @@ import loader
 from random import shuffle
 from widget_settings import *
 
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QProgressBar
 # from PyQt6.QtGui import QPalette
 from PyQt6.QtCore import Qt
 
@@ -157,7 +157,7 @@ class QuizWindow(Window):
         self.question = 0 # question number
         self.answer_type = None # answer type: 1 - radio, 2 - checkbox, 3 - editbox
         self.to_confirm = True # switch for confirm button
-        self.score = [0, 0] # result: correct answers, total
+        self.score = [0, 0, len(self.quiz['questions'])] # result: correct answers, total answered, total questions
         self.correct_answers = []
 
         super().__init__(f'Quiz {quiz['id']} {quiz['name']}', 1000, 800)
@@ -180,16 +180,16 @@ class QuizWindow(Window):
         self.confirm_button = Button('Подтвердить', fixed_width=200)
         self.confirm_button.clicked.connect(self.on_click_confirm)
 
-        self.statusbar_label = Label('')
+        # Status Bar
+        self.progressbar = ProgressBar()
 
         main_v_layout = QVBoxLayout()
-        # main_v_layout.addLayout(quiz_h_layout)
         main_v_layout.addWidget(self.question_group)
         main_v_layout.addWidget(self.answer_group)
+        # main_v_layout.addStretch()
         main_v_layout.addWidget(self.confirm_button)
-        main_v_layout.addWidget(self.statusbar_label)
+        main_v_layout.addWidget(self.progressbar)
         main_v_layout.setAlignment(self.confirm_button, Qt.AlignmentFlag.AlignHCenter)
-        main_v_layout.setAlignment(self.statusbar_label, Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(main_v_layout)
         self.show_question()
 
@@ -204,7 +204,7 @@ class QuizWindow(Window):
         shuffle(choices)
 
         self.question_label.setText(q_data['Q'])
-        self.question_group.setTitle(f'Вопрос {self.question + 1} из {len(self.quiz['questions'])}')
+        self.question_group.setTitle(f'Вопрос {self.question + 1} из {self.score[2]}')
         self.confirm_button.setEnabled(False)
         self.update_statusbar()
 
@@ -272,7 +272,7 @@ class QuizWindow(Window):
             self.score[1] += 1
             self.update_statusbar()
         else: # next question
-            if self.question == len(self.quiz['questions']) - 1: # open result window
+            if self.question == self.score[2] - 1: # open result window
                 self.window = ResultWindow(self.quiz, self.user, self.score)
                 self.window.show()
                 self.close()
@@ -299,7 +299,8 @@ class QuizWindow(Window):
             self.on_click_confirm()
 
     def update_statusbar(self):
-        self.statusbar_label.setText(f'{self.user['name']}: правильных ответов {self.score[0]} из {self.score[1]}')
+        status_text = f'{self.user['name']}: правильных ответов {self.score[0]} из {self.score[1]}'
+        self.progressbar.set_values(self.score[0], self.score[1] - self.score[0], self.score[2], status_text)
 
     def delete_widgets(self, layout):
         while layout.count() > 0:
@@ -381,7 +382,7 @@ class ResultWindow(Window):
         main_v_layout.addWidget(button_back)
         self.setLayout(main_v_layout)
 
-        loader.save_user_data(USER_DATA, self.user['name'], self.quiz['id'], [self.score[0], self.score[1]])
+        loader.save_user_data(USER_DATA, self.user['name'], self.quiz['id'], self.score)
 
 
     def open_main_window(self):
@@ -398,9 +399,17 @@ def get_filtered_data(key: str, value: str, data: dict) -> dict:
     return list(filter(lambda x: x[key] == value, data))[0]
 
 
+# Unhandled exception interceptor
+def excepthook(exc_type, exc_value, tb):
+    import traceback
+    traceback.print_exception(exc_type, exc_value, tb)
+    QApplication.quit()
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     # app.setStyle('Fusion')
     window = WelcomeWindow()
     window.show()
+    sys.excepthook = excepthook
     sys.exit(app.exec())  # запуск цикла приложения

@@ -1,6 +1,8 @@
 import re
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QGroupBox, QComboBox, QRadioButton, QCheckBox
 from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QPainter, QColor, QPen
+from PyQt6.QtCore import Qt
 
 
 class Label(QLabel):
@@ -124,6 +126,60 @@ class CheckBox(QCheckBox):
         font-family: Courier New''')
 
 
+class ProgressBar(QWidget):
+    def __init__(self, parent=None, fixed_height=30):
+        super().__init__(parent)
+        self.match_percent = 0
+        self.miss_percent = 0
+        self.remain_percent = 100
+        self.text = ''
+        self.setFixedHeight(fixed_height)
+
+    def set_values(self, match: int, miss: int, total: int, text: str):
+        """Set values in percent"""
+        self.match_percent = (match / total) * 100 if total > 0 else 0
+        self.miss_percent = (miss / total) * 100 if total > 0 else 0
+        self.remain_percent = 100 - self.match_percent - self.miss_percent
+        self.text = text
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        width = self.width()
+        height = self.height()
+
+        match_width = int(width * self.match_percent / 100)
+        miss_width = int(width * self.miss_percent / 100)
+        remain_width = width - match_width - miss_width
+
+        painter.fillRect(0, 0, match_width, height, QColor('green'))
+        painter.fillRect(match_width, 0, miss_width, height, QColor('red'))
+        painter.fillRect(match_width + miss_width, 0, remain_width, height, QColor('gray'))
+
+        border_width = 2
+        painter.setPen(QPen(QColor("black"), border_width))
+        painter.drawRect(
+            border_width // 2,
+            border_width // 2,
+            width - border_width,
+            height - border_width
+        )
+
+        # borders between segments
+        if self.match_percent > 0 or self.miss_percent > 0:
+            painter.setPen(QColor('black'))
+            painter.drawLine(match_width, 0, match_width, height)
+            painter.drawLine(match_width + miss_width, 0, match_width + miss_width, height)
+
+        # Adjust text to center
+        painter.setPen(QColor('white'))
+        painter.setFont(self.font())
+        text_rect = self.rect().adjusted(5, 0, -5, 0)  # paddings
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.text)
+
+
 class Window(QWidget):
     def __init__(self, text: str, width=300, height=300):
         super().__init__()
@@ -132,6 +188,7 @@ class Window(QWidget):
         # screen = QApplication.primaryScreen().size()
         # self.move((screen.width() - self.width()) // 2, (screen.height() - self.height()) // 2)
         self.setWindowIcon(QIcon('images/chilli.ico'))
+
 
 def change_style(widget, parameter: str, value: str):
     style = widget.styleSheet()

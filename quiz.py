@@ -231,6 +231,7 @@ class QuizWindow(Window):
             self.answer_group.setTitle('Напишите ответ')
             self.edit_result = EditBox()
             self.edit_result.textChanged.connect(self.on_editbox_change)
+            self.edit_result.returnPressed.connect(self.on_editbox_press_enter)
             self.answer_v_layout.addWidget(self.edit_result)
             self.answer_v_layout.setAlignment(self.edit_result, Qt.AlignmentFlag.AlignTop)
         else:
@@ -285,11 +286,17 @@ class QuizWindow(Window):
         self.confirm_button.setEnabled(True)
 
     def on_checkbox_select(self):
-        result = any(map(lambda b: b.isChecked(), self.check_group.buttons()))
-        self.confirm_button.setEnabled(result)
+        if self.to_confirm:
+            result = any(map(lambda b: b.isChecked(), self.check_group.buttons()))
+            self.confirm_button.setEnabled(result)
 
     def on_editbox_change(self):
-        self.confirm_button.setEnabled(bool(len(self.edit_result.text())))
+        if self.to_confirm:
+            self.confirm_button.setEnabled(bool(self.edit_result.text()))
+
+    def on_editbox_press_enter(self):
+        if self.edit_result.text() or not self.to_confirm:
+            self.on_click_confirm()
 
     def update_statusbar(self):
         self.statusbar_label.setText(f'{self.user['name']}: правильных ответов {self.score[0]} из {self.score[1]}')

@@ -122,7 +122,7 @@ class SelectQuizWindow(Window):
         self.user_quizzes_label.setText('Участником пройдено квиз:')
         self.user_answers_label.setText('Правильных ответов:')
         self.user_attempts_label.setText('')
-        style = f'color: green; font-size: 12px'
+        color = 'green'
         if index:
             selected_user = get_filtered_data('name', self.user_combo_box.itemText(index), self.user)
             answered = sum([rank[0] for quiz in selected_user['results'].values() for rank in quiz])
@@ -131,9 +131,9 @@ class SelectQuizWindow(Window):
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
             self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent}%)')
             if 90 <= percent < 100:
-                style = f'color: orange; font-size: 12px'
+                color = 'orange'
             elif total > answered:
-                style = f'color: red; font-size: 12px'
+                color = 'red'
             if self.quiz_combo_box.currentIndex():
                 quiz_id = self.quiz_combo_box.currentText()
                 text = f'Квиз {quiz_id}: не пройдено'
@@ -142,9 +142,8 @@ class SelectQuizWindow(Window):
                     best_result = [r for r in results if r[0] / r[1] == max([res[0] / res[1] for res in results])][0]
                     text = f'Квиз {quiz_id}: было попыток: {len(results)}, лучший результат {best_result[0]} из {best_result[1]}'
                 self.user_attempts_label.setText(text)
-        self.user_quizzes_label.setStyleSheet(style)
-        self.user_answers_label.setStyleSheet(style)
-        self.user_attempts_label.setStyleSheet(style)
+        for widget in [self.user_quizzes_label, self.user_answers_label, self.user_attempts_label]:
+            change_style(widget, 'color', color)
         self.can_run(index, self.quiz_combo_box.currentIndex())
 
     def can_run(self, quiz_index: int, user_index: int):
@@ -330,19 +329,21 @@ class ResultWindow(Window):
         answer_label = Label(f'Правильных ответов {self.score[0]} из {self.score[1]} ({percent}%)', fixed_height=0)
         if self.max_score:
             change_style(answer_label, 'color', 'green')
-        else:
+        elif 90 <= percent < 100:
+            change_style(answer_label, 'color', 'orange')
+        elif percent < 90:
             change_style(answer_label, 'color', 'red')
         answer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if self.quiz['id'] not in self.user['results']:
-            attempt_text = 'Первая попытка.'
+            attempt_text = 'Первая попытка'
             if self.max_score:
-                attempt_text += ' Отличный результат!'
+                attempt_text += '. Отличный результат!'
         else:
-            attempt_text = f'Попытка {len(self.user['results'][self.quiz['id']]) + 1}.'
+            attempt_text = f'Попытка {len(self.user['results'][self.quiz['id']]) + 1}'
             if (self.max_score or self.score[0] / self.score[1] >
                     max([s[0] / s[1] for s in self.user['results'][self.quiz['id']]])):
-                attempt_text += ' Лучший результат!'
+                attempt_text += '. Лучший результат!'
         attempt_label = Label(attempt_text, fixed_height=0)
         attempt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         change_style(attempt_label, 'color', 'green')
@@ -354,7 +355,9 @@ class ResultWindow(Window):
         total_score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if answered == total:
             change_style(total_score_label, 'color', 'green')
-        else:
+        elif 90 <= percent < 100:
+            change_style(total_score_label, 'color', 'orange')
+        elif percent < 90:
             change_style(total_score_label, 'color', 'red')
 
 
@@ -369,7 +372,6 @@ class ResultWindow(Window):
         main_v_layout.addWidget(total_score_label)
         main_v_layout.addStretch()
         main_v_layout.addWidget(button_back)
-        # main_v_layout.setAlignment(button_back, Qt.AlignmentFlag.AlignBottom)
         self.setLayout(main_v_layout)
 
         loader.save_user_data(USER_DATA, self.user['name'], self.quiz['id'], [self.score[0], self.score[1]])

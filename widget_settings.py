@@ -135,6 +135,6 @@ class Window(QWidget):
 
 def change_style(widget, parameter: str, value: str):
     style = widget.styleSheet()
-    pattern = rf'({parameter}:[ ]?)([#]?\b\w+\b)'
+    pattern = rf'([^-]?\b{parameter}:[ ]?)([#]?\b\w+\b)'
     if re.search(pattern, style):
         widget.setStyleSheet(re.sub(pattern, rf'\1{value}', style))

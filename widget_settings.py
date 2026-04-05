@@ -39,8 +39,8 @@ class SmallLabel(QLabel):
 
 
 class EditBox(QLineEdit):
-    def __init__(self, fixed_width=0, fixed_height=30, max_length=50):
-        super().__init__()
+    def __init__(self, text='', fixed_width=0, fixed_height=30, max_length=50):
+        super().__init__(text)
         self.setStyleSheet('color: #203764; font-size: 16px; font-weight: bold')
         if fixed_width:
             self.setFixedWidth(fixed_width)
@@ -92,6 +92,7 @@ class ComboList(QComboBox):
     def __init__(self, fixed_width=0, fixed_height=30):
         super().__init__()
         self.setStyleSheet('color: #203764; font-size: 16px')
+        self.setMaxVisibleItems(10)
         if fixed_width:
             self.setFixedWidth(fixed_width)
         if fixed_height:

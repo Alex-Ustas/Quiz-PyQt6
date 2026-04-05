@@ -6,12 +6,12 @@ from datetime import datetime as dt
 
 
 def get_json_data(file: str) -> dict:
-    """Get all settings from json file"""
+    """Get data from json file"""
     if not os.path.exists(file):
         return dict()
     with open(file, 'r', encoding='utf-8') as file:
-        quiz = json.load(file)
-    return quiz
+        data = json.load(file)
+    return data
 
 
 def save_user_data(file: str, name: str, quiz: str, score: list):
@@ -26,3 +26,11 @@ def save_user_data(file: str, name: str, quiz: str, score: list):
                 data[i]['results'][quiz] = [[score[0], score[1] , date_now]]
     with open(file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+def save_data(file: str, data: dict):
+    """Save data in json file"""
+    if not os.path.exists(file):
+        raise FileNotFoundError(f'File "{file}" not found')
+    with open(file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)

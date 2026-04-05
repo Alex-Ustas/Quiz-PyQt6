@@ -1,14 +1,20 @@
-import sys
+# TODO:
+#   - scrollbar
+#   - participants
+#   - setup for quizzes
+
+import sys, pygame
 import loader
 from random import shuffle
 from widget_settings import *
 
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QProgressBar
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup
 # from PyQt6.QtGui import QPalette
 from PyQt6.QtCore import Qt
 
 QUIZ_DATA = 'data/quiz.json'
 USER_DATA = 'data/user.json'
+RESULT_SOUND = ['data/farts.wav', 'data/glee-30.wav']
 
 
 class WelcomeWindow(Window):
@@ -20,6 +26,7 @@ class WelcomeWindow(Window):
         button_run_quiz = Button('Пройти квиз')
         button_run_quiz.clicked.connect(self.open_select_quiz_window)
         button_control_quiz = Button('Управлять квизами')
+        button_control_quiz.clicked.connect(self.open_control_quiz_window)
         button_users = Button('Участники')
 
         main_v_layout = QVBoxLayout()
@@ -33,6 +40,11 @@ class WelcomeWindow(Window):
         self.window.show()
         self.close()
 
+    def open_control_quiz_window(self):
+        self.window = ControlQuizWindow()
+        self.window.show()
+        self.close()
+
 
 class SelectQuizWindow(Window):
     def __init__(self):
@@ -40,7 +52,7 @@ class SelectQuizWindow(Window):
         self.setUpWindow()
 
     def setUpWindow(self):
-        quiz_label = Label('Номер квиз')
+        quiz_label = Label('Номер квиза')
         quiz_h_layout = QHBoxLayout()
         quiz_h_layout.addWidget(quiz_label)
 
@@ -129,7 +141,7 @@ class SelectQuizWindow(Window):
             total = sum([rank[1] for quiz in selected_user['results'].values() for rank in quiz])
             percent = count_percent(answered, total)
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
-            self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent}%)')
+            self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
             if 90 <= percent < 100:
                 color = 'orange'
             elif total > answered:
@@ -154,10 +166,10 @@ class QuizWindow(Window):
     def __init__(self, quiz: dict, user: dict):
         self.quiz = quiz
         self.user = user
-        self.question = 0 # question number
-        self.answer_type = None # answer type: 1 - radio, 2 - checkbox, 3 - editbox
-        self.to_confirm = True # switch for confirm button
-        self.score = [0, 0, len(self.quiz['questions'])] # result: correct answers, total answered, total questions
+        self.question = 0  # question number
+        self.answer_type = None  # answer type: 1 - radio, 2 - checkbox, 3 - editbox
+        self.to_confirm = True  # switch for confirm button
+        self.score = [0, 0, len(self.quiz['questions'])]  # result: correct answers, total answered, total questions
         self.correct_answers = []
 
         super().__init__(f'Quiz {quiz['id']} {quiz['name']}', 1000, 800)
@@ -197,7 +209,7 @@ class QuizWindow(Window):
         q_data = self.quiz['questions'][self.question]
         self.answer_type = q_data['type']
         choices = q_data['choices']
-        if self.answer_type == 3: # editbox
+        if self.answer_type == 3:  # editbox
             self.correct_answers = [q_data['A']]
         else:
             self.correct_answers = [choices[int(a)] for a in q_data['A'].split(';')]
@@ -208,7 +220,7 @@ class QuizWindow(Window):
         self.confirm_button.setEnabled(False)
         self.update_statusbar()
 
-        if self.answer_type == 1: # radio
+        if self.answer_type == 1:  # radio
             self.answer_group.setTitle('Выберите один ответ')
             self.radio_group = QButtonGroup(self)
             for case in choices:
@@ -217,7 +229,7 @@ class QuizWindow(Window):
                 self.answer_v_layout.addWidget(radio_button)
             self.radio_group.buttonToggled.connect(self.on_radio_button_select)
             self.answer_v_layout.addStretch()  # чтобы не растягивались по всему layout
-        elif self.answer_type == 2: # checkbox
+        elif self.answer_type == 2:  # checkbox
             self.answer_group.setTitle('Выберите один или несколько ответов')
             self.check_group = QButtonGroup(self)
             self.check_group.setExclusive(False)
@@ -227,7 +239,7 @@ class QuizWindow(Window):
                 self.answer_v_layout.addWidget(checkbox)
             self.check_group.buttonToggled.connect(self.on_checkbox_select)
             self.answer_v_layout.addStretch()  # чтобы не растягивались по всему layout
-        elif self.answer_type == 3: # editbox
+        elif self.answer_type == 3:  # editbox
             self.answer_group.setTitle('Напишите ответ')
             self.edit_result = EditBox()
             self.edit_result.textChanged.connect(self.on_editbox_change)
@@ -239,9 +251,9 @@ class QuizWindow(Window):
 
     def on_click_confirm(self):
         self.confirm_button.setText('Продолжить' if self.to_confirm else 'Подтвердить')
-        if self.to_confirm: # check and show current result
+        if self.to_confirm:  # check and show current result
             match = 0
-            if self.answer_type == 1: # radio
+            if self.answer_type == 1:  # radio
                 if self.radio_group.checkedButton().text() == self.correct_answers[0]:
                     match = 1
                 for radio in self.radio_group.buttons():
@@ -249,7 +261,7 @@ class QuizWindow(Window):
                         change_style(radio, 'color', 'green')
                     elif radio.isChecked():
                         change_style(radio, 'color', 'red')
-            elif self.answer_type == 2: # checkbox
+            elif self.answer_type == 2:  # checkbox
                 match = 1
                 for checkbox in self.check_group.buttons():
                     if checkbox.isChecked() and checkbox.text() in self.correct_answers:
@@ -257,7 +269,7 @@ class QuizWindow(Window):
                     elif checkbox.isChecked() or checkbox.text() in self.correct_answers:
                         change_style(checkbox, 'color', 'red')
                         match = 0
-            elif self.answer_type == 3: # editbox
+            elif self.answer_type == 3:  # editbox
                 if self.edit_result.text() == self.correct_answers[0]:
                     match = 1
                     change_style(self.edit_result, 'color', 'green')
@@ -268,15 +280,22 @@ class QuizWindow(Window):
                     self.answer_v_layout.addWidget(result_label)
                     self.answer_v_layout.addStretch()
 
+            # play sound
+            if self.quiz['playsound']:
+                pygame.mixer.init()
+                pygame.init()
+                sound = pygame.mixer.Sound(RESULT_SOUND[match])
+                sound.play()
+
             self.score[0] += match
             self.score[1] += 1
             self.update_statusbar()
-        else: # next question
-            if self.question == self.score[2] - 1: # open result window
+        else:  # next question
+            if self.question == self.score[2] - 1:  # open result window
                 self.window = ResultWindow(self.quiz, self.user, self.score)
                 self.window.show()
                 self.close()
-            else: # remove current widgets and show next question
+            else:  # remove current widgets and show next question
                 self.question += 1
                 self.delete_widgets(self.answer_v_layout)
                 self.show_question()
@@ -329,12 +348,12 @@ class ResultWindow(Window):
         user_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         user_label.setWordWrap(True)
 
-        quiz_label = Label(self.quiz['id'] +' ' + self.quiz['name'], fixed_height=0)
+        quiz_label = Label(self.quiz['id'] + ' ' + self.quiz['name'], fixed_height=0)
         quiz_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         quiz_label.setWordWrap(True)
 
         percent = count_percent(self.score[0], self.score[1])
-        answer_label = Label(f'Правильных ответов {self.score[0]} из {self.score[1]} ({percent}%)', fixed_height=0)
+        answer_label = Label(f'Правильных ответов {self.score[0]} из {self.score[1]} ({percent:.2f}%)', fixed_height=0)
         if self.max_score:
             change_style(answer_label, 'color', 'green')
         elif 90 <= percent < 100:
@@ -359,7 +378,7 @@ class ResultWindow(Window):
         answered = sum([rank[0] for quiz in self.user['results'].values() for rank in quiz]) + self.score[0]
         total = sum([rank[1] for quiz in self.user['results'].values() for rank in quiz]) + self.score[1]
         percent = count_percent(answered, total)
-        total_score_label = Label(f'Общий счет: {answered} из {total} ({percent}%)', fixed_height=0)
+        total_score_label = Label(f'Общий счет: {answered} из {total} ({percent:.2f}%)', fixed_height=0)
         total_score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if answered == total:
             change_style(total_score_label, 'color', 'green')
@@ -367,7 +386,6 @@ class ResultWindow(Window):
             change_style(total_score_label, 'color', 'orange')
         elif percent < 90:
             change_style(total_score_label, 'color', 'red')
-
 
         button_back = Button('Главное окно')
         button_back.clicked.connect(self.open_main_window)
@@ -384,9 +402,154 @@ class ResultWindow(Window):
 
         loader.save_user_data(USER_DATA, self.user['name'], self.quiz['id'], self.score)
 
+    def open_main_window(self):
+        self.window = WelcomeWindow()
+        self.window.show()
+        self.close()
+
+
+class ControlQuizWindow(Window):
+    def __init__(self):
+        self.to_save = False  # switch for save/change
+        super().__init__('Управление квизами', 570, 300)
+        self.setUpWindow()
+
+    def setUpWindow(self):
+        quiz_label = Label('Номер квиза')
+        quiz_h_layout = QHBoxLayout()
+        quiz_h_layout.addWidget(quiz_label)
+
+        self.quiz = loader.get_json_data(QUIZ_DATA)
+        self.quiz_list = [q['id'] for q in self.quiz]
+        self.quiz_combo_box = ComboList(fixed_width=100)
+        self.quiz_combo_box.addItems(self.quiz_list)
+        self.quiz_combo_box.setEditable(True)
+        self.quiz_combo_box.setCurrentText('')
+        self.quiz_combo_box.currentTextChanged.connect(self.on_quiz_number_change)
+
+        quiz_h_layout.addWidget(self.quiz_combo_box)
+        quiz_h_layout.addStretch()
+
+        quiz_name_label = Label('Название')
+        quiz_name_h_layout = QHBoxLayout()
+        quiz_name_h_layout.addWidget(quiz_name_label)
+
+        self.name_editbox = EditBox()
+        self.name_editbox.textEdited.connect(self.on_data_change)
+        quiz_name_h_layout.addWidget(self.name_editbox)
+
+        self.sound_checkbox = CheckBox('Со звуком')
+        self.sound_checkbox.setFixedWidth(150)
+        self.sound_checkbox.setChecked(True)
+        self.sound_checkbox.stateChanged.connect(self.on_data_change)
+
+        self.create_button = Button('Создать')
+        self.change_button = Button('Изменить')
+        self.delete_button = Button('Удалить')
+        self.create_button.setEnabled(False)
+        self.change_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
+        self.create_button.clicked.connect(self.open_create_window)
+        self.change_button.clicked.connect(self.on_change_button)
+        buttons_h_layout = QHBoxLayout()
+        buttons_h_layout.addWidget(self.create_button)
+        buttons_h_layout.addWidget(self.change_button)
+        buttons_h_layout.addWidget(self.delete_button)
+
+        button_back = Button('Главное окно')
+        button_back.clicked.connect(self.open_main_window)
+
+        main_v_layout = QVBoxLayout()
+        main_v_layout.addLayout(quiz_h_layout)
+        main_v_layout.addLayout(quiz_name_h_layout)
+        main_v_layout.addWidget(self.sound_checkbox)
+        main_v_layout.addStretch()
+        main_v_layout.addLayout(buttons_h_layout)
+        main_v_layout.addWidget(button_back)
+        self.setLayout(main_v_layout)
 
     def open_main_window(self):
         self.window = WelcomeWindow()
+        self.window.show()
+        self.close()
+
+    def open_create_window(self):
+        self.window = CreateQuizWindow(self.quiz_combo_box.currentText(), self.name_editbox.text())
+        self.window.show()
+        self.close()
+
+    def on_quiz_number_change(self, text):
+        self.change_button.setText('Изменить')
+        self.to_save = False
+        self.create_button.setEnabled(bool(text and not text in self.quiz_list))
+        self.change_button.setEnabled(bool(text and text in self.quiz_list))
+        self.delete_button.setEnabled(bool(text and text in self.quiz_list))
+        if text and text in self.quiz_list:
+            quiz = get_filtered_data('id', self.quiz_combo_box.currentText(), self.quiz)
+            self.name_editbox.setText(quiz['name'])
+            self.sound_checkbox.setChecked(quiz['playsound'])
+        else:
+            self.name_editbox.setText('')
+            self.sound_checkbox.setChecked(True)
+
+    def on_data_change(self):
+        text = self.quiz_combo_box.currentText()
+        if text in self.quiz_list:
+            q_data = get_filtered_data('id', text, self.quiz)
+            if self.sound_checkbox.isChecked() == q_data['playsound'] and self.name_editbox.text() == q_data['name']:
+                self.change_button.setText('Изменить')
+                self.to_save = False
+            else:
+                self.change_button.setText('Сохранить')
+                self.to_save = True
+
+    def on_change_button(self):
+        if self.to_save:
+            self.quiz[self.quiz_combo_box.currentIndex()]['name'] = self.name_editbox.text()
+            self.quiz[self.quiz_combo_box.currentIndex()]['playsound'] = self.sound_checkbox.isChecked()
+            loader.save_data(QUIZ_DATA, self.quiz)
+            self.change_button.setText('Изменить')
+            self.to_save = False
+        else:
+            pass
+
+
+class CreateQuizWindow(Window):
+    def __init__(self, quiz_id: str, quiz_name: str):
+        self.quiz_id = quiz_id
+        self.quiz_name = quiz_name
+        super().__init__(f'Создание квиза {quiz_id}', 565, 300)
+        self.setUpWindow()
+
+    def setUpWindow(self):
+        quiz_label = Label(f'Квиз {self.quiz_id}')
+
+        quiz_name_label = Label('Название')
+        quiz_name_h_layout = QHBoxLayout()
+        quiz_name_h_layout.addWidget(quiz_name_label)
+
+        self.name_editbox = EditBox(text=self.quiz_name)
+        # self.name_editbox.textEdited.connect(self.on_data_change)
+        quiz_name_h_layout.addWidget(self.name_editbox)
+
+        self.save_button = Button('Сохранить', fixed_width=150)
+        cancel_button = Button('Отменить', fixed_width=150)
+        self.save_button.clicked.connect(self.open_control_quiz_window)
+        cancel_button.clicked.connect(self.open_control_quiz_window)
+
+        footer_buttons_h_layout = QHBoxLayout()
+        footer_buttons_h_layout.addWidget(self.save_button)
+        footer_buttons_h_layout.addStretch()
+        footer_buttons_h_layout.addWidget(cancel_button)
+
+        main_v_layout = QVBoxLayout()
+        main_v_layout.addWidget(quiz_label)
+        main_v_layout.addLayout(quiz_name_h_layout)
+        main_v_layout.addLayout(footer_buttons_h_layout)
+        self.setLayout(main_v_layout)
+
+    def open_control_quiz_window(self):
+        self.window = ControlQuizWindow()
         self.window.show()
         self.close()
 

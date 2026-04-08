@@ -5,10 +5,10 @@ import json
 from datetime import datetime as dt
 
 
-def get_json_data(file: str) -> dict:
+def get_json_data(file: str) -> list:
     """Get data from json file"""
     if not os.path.exists(file):
-        return dict()
+        return list()
     with open(file, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
@@ -28,7 +28,7 @@ def save_user_data(file: str, name: str, quiz: str, score: list):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-def save_data(file: str, data: dict):
+def save_data(file: str, data: list):
     """Save data in json file"""
     if not os.path.exists(file):
         raise FileNotFoundError(f'File "{file}" not found')

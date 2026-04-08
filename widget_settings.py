@@ -1,14 +1,14 @@
 import re
-from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QGroupBox, QComboBox, QRadioButton, QCheckBox
+from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QGroupBox, QComboBox, QRadioButton,
+                             QCheckBox, QPlainTextEdit, QSpinBox)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtGui import QPainter, QColor, QPen
 from PyQt6.QtCore import Qt
 
 
 class Label(QLabel):
-    def __init__(self, text: str, fixed_width=0, fixed_height=50):
-        super().__init__()
-        self.setText(text)
+    def __init__(self, text: str, fixed_width=0, fixed_height=30):
+        super().__init__(text)
         self.setStyleSheet('color: #203764; font-size: 16px; font-weight: bold')
         if fixed_width:
             self.setFixedWidth(fixed_width)
@@ -17,9 +17,8 @@ class Label(QLabel):
 
 
 class LabelCode(QLabel):
-    def __init__(self, text: str, fixed_width=0, fixed_height=50):
-        super().__init__()
-        self.setText(text)
+    def __init__(self, text: str, fixed_width=0, fixed_height=30):
+        super().__init__(text)
         self.setStyleSheet('color: #4D7731; font-size: 16px; font-weight: bold; font-family: Courier New')
         if fixed_width:
             self.setFixedWidth(fixed_width)
@@ -29,8 +28,7 @@ class LabelCode(QLabel):
 
 class SmallLabel(QLabel):
     def __init__(self, text: str, fixed_width=0, fixed_height=0, color='green'):
-        super().__init__()
-        self.setText(text)
+        super().__init__(text)
         self.setStyleSheet(f'color: {color}; font-size: 12px')
         if fixed_width:
             self.setFixedWidth(fixed_width)
@@ -48,6 +46,30 @@ class EditBox(QLineEdit):
             self.setFixedHeight(fixed_height)
         if max_length:
             self.setMaxLength(max_length)
+
+
+class EditSpin(QSpinBox):
+    def __init__(self, fixed_width=0, fixed_height=30, minimum=1, maximum=20):
+        super().__init__()
+        self.setStyleSheet('color: #203764; font-size: 16px; font-weight: bold')
+        if fixed_width:
+            self.setFixedWidth(fixed_width)
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
+        if minimum:
+            self.setMinimum(minimum)
+        if maximum:
+            self.setMaximum(maximum)
+
+
+class TextBox(QPlainTextEdit):
+    def __init__(self, text='', fixed_width=0, fixed_height=30):
+        super().__init__(text)
+        self.setStyleSheet('color: #4D7731; font-size: 16px; font-weight: bold; font-family: Courier New; line-wrap: true')
+        if fixed_width:
+            self.setFixedWidth(fixed_width)
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
 
 
 class Button(QPushButton):
@@ -68,8 +90,8 @@ class Button(QPushButton):
 
 
 class Group(QGroupBox):
-    def __init__(self, text: str):
-        super().__init__()
+    def __init__(self, text: str, fixed_width=0, fixed_height=0):
+        super().__init__(text)
         self.setStyleSheet("""
             QGroupBox {
                 font-size: 16px; 
@@ -85,7 +107,10 @@ class Group(QGroupBox):
                 left: 10px;
                 padding: 5px 5px 5px 5px;
                 }""")
-        self.setTitle(text)
+        if fixed_width:
+            self.setFixedWidth(fixed_width)
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
 
 
 class ComboList(QComboBox):
@@ -114,7 +139,7 @@ class RadioButton(QRadioButton):
 
 
 class CheckBox(QCheckBox):
-    def __init__(self, text: str):
+    def __init__(self, text: str, fixed_width=0, fixed_height=0):
         super().__init__(text)
         self.setStyleSheet('''
         color: #203764; 
@@ -125,6 +150,10 @@ class CheckBox(QCheckBox):
         font-size: 16px; 
         font-weight: bold; 
         font-family: Courier New''')
+        if fixed_width:
+            self.setFixedWidth(fixed_width)
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
 
 
 class ProgressBar(QWidget):

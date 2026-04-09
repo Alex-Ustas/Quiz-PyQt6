@@ -1,7 +1,6 @@
 # TODO:
 #   - QuizWindow: scrollbar
 #   - participants
-#   - ControlQuizWindow: delete quiz
 #   - CreateChangeQuizWindow: delete question
 #   - CreateChangeQuizWindow: delete answer
 #   - CreateChangeQuizWindow: change question order
@@ -13,7 +12,7 @@ from random import shuffle
 from copy import deepcopy
 from widget_settings import *
 
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QMessageBox
 # from PyQt6.QtGui import QPalette
 from PyQt6.QtCore import Qt
 
@@ -458,6 +457,7 @@ class ControlQuizWindow(Window):
         self.delete_button.setEnabled(False)
         self.create_button.clicked.connect(self.open_create_window)
         self.change_button.clicked.connect(self.on_change_button)
+        self.delete_button.clicked.connect(self.on_delete_button)
         buttons_h_layout = QHBoxLayout()
         buttons_h_layout.addWidget(self.create_button)
         buttons_h_layout.addWidget(self.change_button)
@@ -538,13 +538,34 @@ class ControlQuizWindow(Window):
         else:
             self.open_change_window()
 
+    def on_delete_button(self):
+        quiz_id = self.quiz_combo_box.currentText()
+        reply = QMessageBox.question(self, 'Удаление квиза',
+                                     f'Вы действительно хотите удалить квиз\n{quiz_id} {self.name_editbox.text()}?',
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            index = list(filter(lambda q: q[1]['id'] == quiz_id, enumerate(self.quiz)))[0][0]
+            del self.quiz[index]
+            self.quiz_list = [q['id'] for q in self.quiz]
+            self.name_editbox.setText('')
+            self.sound_checkbox.setChecked(True)
+            self.quiz_combo_box.clear()
+            self.quiz_combo_box.addItems(self.quiz_list)
+            self.quiz_combo_box.setCurrentText('')
+
+            userdata = loader.get_json_data(USER_DATA)
+            for user in userdata:
+                user['results'].pop(quiz_id, None)
+            loader.save_data(USER_DATA, userdata)
+            loader.save_data(QUIZ_DATA, self.quiz)
+
 
 class CreateChangeQuizWindow(Window):
     def __init__(self, quiz_data: tuple, questions=None):
-        self.quiz_id,  self.quiz_name, self.playsound = quiz_data
+        self.quiz_id, self.quiz_name, self.playsound = quiz_data
         self.new_question = self.is_new = bool(questions is None)
-        self.questions = []  if self.is_new else questions  # data for all questions
-        self.pages = [1, 1]  if self.is_new else [1, len(self.questions)]  # current, total
+        self.questions = [] if self.is_new else questions  # data for all questions
+        self.pages = [1, 1] if self.is_new else [1, len(self.questions)]  # current, total
         self.question = {}
         self.generate_q_data()
         title = f'Создание' if self.is_new else f'Изменение'
@@ -659,7 +680,7 @@ class CreateChangeQuizWindow(Window):
         self.close()
 
     def generate_q_data(self) -> None:
-        if self.new_question:
+        if self.new_question:  # default data for new question
             self.question = {'type': 1,
                              'Q': '',
                              'choices': [],
@@ -692,6 +713,7 @@ class CreateChangeQuizWindow(Window):
             self.next_button.setText('+')
         else:
             self.next_button.setText(f'>> {self.pages[0] + 1}')
+
         self.check_data_before_save()
 
     def show_answer(self):
@@ -728,7 +750,8 @@ class CreateChangeQuizWindow(Window):
         self.check_data_before_save()
 
     def on_checkbox_select(self):
-        self.question['A'] = ';'.join([str(self.check_group.id(button)) for button in self.check_group.buttons() if button.isChecked()])
+        self.question['A'] = ';'.join(
+            [str(i) for i, button in enumerate(self.check_group.buttons()) if button.isChecked()])
         self.check_data_before_save()
 
     def on_prev_button(self):
@@ -776,7 +799,6 @@ class CreateChangeQuizWindow(Window):
         self.prev_button.setEnabled(result and self.pages[0] > 1)
         self.next_button.setEnabled(result)
         self.save_button.setEnabled(result)
-        # print(f'{q_text=} {a_type=} {a_text=} {choice=} {result=}')
 
     def save_question(self):
         if self.new_question:
@@ -790,7 +812,8 @@ class CreateChangeQuizWindow(Window):
             question['A'] = str(self.radio_group.checkedId())
         elif answer_type == 2:  # checkbox
             question['choices'] = [choice for choice in self.question['choices']]
-            question['A'] = ';'.join([str(i) for i, button in enumerate(self.check_group.buttons()) if button.isChecked()])
+            question['A'] = ';'.join(
+                [str(i) for i, button in enumerate(self.check_group.buttons()) if button.isChecked()])
         else:  # editbox
             question['choices'] = []
             question['A'] = self.answer_textbox.toPlainText()

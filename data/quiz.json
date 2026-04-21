@@ -21,7 +21,7 @@
         "weight": 1,
         "shuffle": true,
         "show_result": true,
-        "note": ""
+        "note": "Объявление функции должно предшествовать её вызову. Объявление функции должно предшествовать её вызову. Объявление функции должно предшествовать её вызову. Объя функции должно предшествовать её вызову. Объявление функции должно предшествовать её вызову. "
       },
       {
         "type": 2,
@@ -46,7 +46,7 @@
         "weight": 1,
         "shuffle": true,
         "show_result": true,
-        "note": ""
+        "note": "Объявление функции должно предшествовать её вызову."
       }
     ]
   },
@@ -3099,7 +3099,6 @@
         "choices": [
           "append()",
           "add()",
-          "insert()",
           "clear()",
           "count()",
           "copy()"
@@ -3115,7 +3114,6 @@
         "Q": "В результате применения какой инструкции значение в заданной индексной позиции удаляется из списка?",
         "choices": [
           "del",
-          "pop",
           "ins",
           "insert",
           "clear",
@@ -3124,6 +3122,189 @@
         "A": "0",
         "weight": 1,
         "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 3,
+        "Q": "Что покажет приведённый ниже код?\nscore = [5, 4, 3, 5, 4, 5]\nresult = sum(score) + max(score)\nresult -= len(score) + score.count(3) + score.index(3)\nprint(result)",
+        "choices": [],
+        "A": "22",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\nnumbers = [8, 3, 10, 4, 100, 1, -7]\nnumbers.sort()\ndel numbers[0]\ndel numbers[-1]\nnumbers.sort(reverse=True)\nprint(numbers)",
+        "choices": [
+          "[10, 8, 4, 3, 1]",
+          "[1, 3, 4, 8, 10]",
+          "[8, 3, 10, 4, 100, 1, -7]",
+          "[3, 10, 4, 100, 1]",
+          "[1, 100, 4, 10, 3]",
+          "произойдёт ошибка"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Дан список цен. Какое утверждение верно для полученного результата вычислений?\nprices = [120, 80, 50, 200, 60]\nresult = [n for n in prices if n < 100]\nprint(result)",
+        "choices": [
+          "получен список цен дешевле 100",
+          "получен список цен дороже 100",
+          "произойдёт ошибка",
+          "получен список индексов цен товаров до 100"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Есть список трат за неделю:\nspending = [50, 0, 30, 70, 20, 0, 40]\nКакой вариант покажет, что трат не было во второй и шестой день?",
+        "choices": [
+          "result = [i for i in spending if i == 0]",
+          "result = [i + 1 for i in range(len(spending)) if i == 0]",
+          "result = [i + 1 for i in range(len(spending)) if spending[i] == 0]",
+          "result = [i if i == 0 for i in spending]",
+          "result = [i + 1 for i in spending if spending.index(i) == 0]"
+        ],
+        "A": "2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": "21",
+    "name": "Функции. Часть 1",
+    "playsound": true,
+    "questions": [
+      {
+        "type": 1,
+        "Q": "Первая строка определения функции называется",
+        "choices": [
+          "инициализацией",
+          "введением",
+          "телом",
+          "заголовком"
+        ],
+        "A": "3",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 2,
+        "Q": "Какие из имён допустимы для названия функции в Python?",
+        "choices": [
+          "print_numbers()",
+          "_myfunction()",
+          "is_valid()",
+          "find_sum_1()",
+          "1example()",
+          "revert text()"
+        ],
+        "A": "0;1;2;3",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Для чего используется оператор pass?",
+        "choices": [
+          "для прерывания функции",
+          "для возврата значения из функции",
+          "для создания заглушки",
+          "для повторного вызова функции"
+        ],
+        "A": "2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef welcome():\n    print('Добро пожаловать!')\n\nprint('Начинаем изучать функции')",
+        "choices": [
+          "Добро пожаловать!\nНачинаем изучать функции",
+          "Начинаем изучать функции\nДобро пожаловать!",
+          "Начинаем изучать функции",
+          "произойдёт ошибка"
+        ],
+        "A": "2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\nwelcome()\nprint('Начинаем изучать функции')\n\n\ndef welcome():\n    print('Добро пожаловать!')",
+        "choices": [
+          "Добро пожаловать!\nНачинаем изучать функции",
+          "Начинаем изучать функции\nДобро пожаловать!",
+          "Начинаем изучать функции",
+          "произойдёт ошибка"
+        ],
+        "A": "3",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": "Объявление функции должно предшествовать её вызову. 😇"
+      },
+      {
+        "type": 3,
+        "Q": "Взгляните на приведённое ниже определение функции:\n\ndef print_number(a, b, c):\n    d = (a + c) // b\n    print(d)\n\nКакое значение будет показано после вызова функции print_number(2, 3, 11)?",
+        "choices": [],
+        "A": "4",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef triple(num):\n    num *= 3\n\nnum = 10\ntriple(num)\nprint(num)",
+        "choices": [
+          "10",
+          "30",
+          "1000",
+          "произойдет ошибка"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 2,
+        "Q": "Выберите все корректные объявления функций.\n1. def sum(a, b):\n       print(a + b)\n2. def div a, b:\n       pass\n3. def print_hello(name):\n       print(f'Hello, {name}!')\n4. def mult(a, b)\n       print(a * b)\n5. def print_info(name; age):\n       print(f'My name is {name} and I am {age} years old.')",
+        "choices": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "A": "0;2",
+        "weight": 1,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       }

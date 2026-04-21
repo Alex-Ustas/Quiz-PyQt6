@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt
 
 QUIZ_DATA = 'data/quiz.json'
 USER_DATA = 'data/user.json'
-RESULT_SOUND = ['data/farts.wav', 'data/glee-30.wav']
+RESULT_SOUND = ['data/giggle-22.wav', 'data/joyful.wav']
 
 
 class WelcomeWindow(Window):
@@ -193,6 +193,10 @@ class QuizWindow(Window):
         self.answer_group = Group('Выберите ответ')
         self.answer_group.setLayout(self.answer_v_layout)
 
+        self.note_label = LabelNote('')
+        self.note_label.setWordWrap(True)
+        self.note_label.setHidden(True)
+
         self.confirm_button = Button('Подтвердить', fixed_width=200)
         self.confirm_button.clicked.connect(self.on_click_confirm)
 
@@ -202,6 +206,7 @@ class QuizWindow(Window):
         main_v_layout = QVBoxLayout()
         main_v_layout.addWidget(self.question_group)
         main_v_layout.addWidget(self.answer_group)
+        main_v_layout.addWidget(self.note_label)
         main_v_layout.addWidget(self.confirm_button)
         main_v_layout.addWidget(self.progressbar)
         main_v_layout.setAlignment(self.confirm_button, Qt.AlignmentFlag.AlignHCenter)
@@ -292,6 +297,12 @@ class QuizWindow(Window):
                 sound = pygame.mixer.Sound(RESULT_SOUND[match])
                 sound.play()
 
+            # show note
+            note = self.quiz['questions'][self.question]['note']
+            if note:
+                self.note_label.setText(note)
+                self.note_label.setHidden(False)
+
             self.score[0] += match
             self.score[1] += 1
             self.update_statusbar()
@@ -304,6 +315,7 @@ class QuizWindow(Window):
                 self.question += 1
                 self.delete_widgets(self.answer_v_layout)
                 self.show_question()
+            self.note_label.setHidden(True)
         self.to_confirm = not self.to_confirm
 
     def on_radio_button_select(self):
@@ -325,18 +337,6 @@ class QuizWindow(Window):
     def update_statusbar(self):
         status_text = f'{self.user['name']}: правильных ответов {self.score[0]} из {self.score[1]}'
         self.progressbar.set_values(self.score[0], self.score[1] - self.score[0], self.score[2], status_text)
-
-    def delete_widgets(self, layout):
-        while layout.count() > 0:
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-
-            child_layout = item.layout()
-            if child_layout is not None:
-                self.delete_widgets(child_layout)
-                child_layout.deleteLater()
 
 
 class ResultWindow(Window):
@@ -640,14 +640,15 @@ class CreateChangeQuizWindow(Window):
         # Navigation section
         self.prev_button = Button('1 <<', fixed_width=50)
         self.prev_button.clicked.connect(self.on_prev_button)
-        delete_question = Button('Удалить вопрос', fixed_width=200)
+        self.delete_question = Button('Удалить вопрос', fixed_width=200)
+        self.delete_question.clicked.connect(self.on_delete_button)
         self.next_button = Button('+', fixed_width=50)
         self.next_button.clicked.connect(self.on_next_button)
 
         navigation_h_layout = QHBoxLayout()
         navigation_h_layout.addWidget(self.prev_button)
         navigation_h_layout.addStretch()
-        navigation_h_layout.addWidget(delete_question)
+        navigation_h_layout.addWidget(self.delete_question)
         navigation_h_layout.addStretch()
         navigation_h_layout.addWidget(self.next_button)
 
@@ -673,6 +674,10 @@ class CreateChangeQuizWindow(Window):
         self.setLayout(main_v_layout)
 
         self.show_question()
+
+    def on_delete_button(self):
+        if self.new_question:
+            pass
 
     def open_control_quiz_window(self):
         self.window = ControlQuizWindow()
@@ -836,18 +841,6 @@ class CreateChangeQuizWindow(Window):
         quiz['questions'] = self.questions
         loader.save_data(QUIZ_DATA, quiz_data)
         self.open_control_quiz_window()
-
-    def delete_widgets(self, layout):
-        while layout.count() > 0:
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-
-            child_layout = item.layout()
-            if child_layout is not None:
-                self.delete_widgets(child_layout)
-                child_layout.deleteLater()
 
 
 def count_percent(n: int, total: int) -> float:

@@ -26,6 +26,16 @@ class LabelCode(QLabel):
             self.setFixedHeight(fixed_height)
 
 
+class LabelNote(QLabel):
+    def __init__(self, text: str, fixed_width=0, fixed_height=30):
+        super().__init__(text)
+        self.setStyleSheet('color: white; background-color: black; font-size: 12px; padding: 2px 10px 2px 10px')
+        if fixed_width:
+            self.setFixedWidth(fixed_width)
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
+
+
 class SmallLabel(QLabel):
     def __init__(self, text: str, fixed_width=0, fixed_height=0, color='green'):
         super().__init__(text)
@@ -218,6 +228,18 @@ class Window(QWidget):
         # screen = QApplication.primaryScreen().size()
         # self.move((screen.width() - self.width()) // 2, (screen.height() - self.height()) // 2)
         self.setWindowIcon(QIcon('images/chilli.ico'))
+
+    def delete_widgets(self, layout):
+        while layout.count() > 0:
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+            child_layout = item.layout()
+            if child_layout is not None:
+                self.delete_widgets(child_layout)
+                child_layout.deleteLater()
 
 
 def change_style(widget, parameter: str, value: str):

@@ -1,7 +1,6 @@
 # TODO:
 #   - QuizWindow: scrollbar
 #   - participants
-#   - CreateChangeQuizWindow: delete question
 #   - CreateChangeQuizWindow: delete answer
 #   - CreateChangeQuizWindow: change question order
 #   - CreateChangeQuizWindow: scrollbar
@@ -640,15 +639,15 @@ class CreateChangeQuizWindow(Window):
         self.prev_button = Button('', fixed_width=50)
         self.prev_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.prev_button.clicked.connect(self.on_prev_button)
-        self.delete_question = Button('Удалить вопрос', fixed_width=200)
-        self.delete_question.clicked.connect(self.on_delete_button)
+        self.delete_button = Button('Удалить вопрос', fixed_width=200)
+        self.delete_button.clicked.connect(self.on_delete_button)
         self.next_button = Button('', fixed_width=50)
         self.next_button.clicked.connect(self.on_next_button)
 
         navigation_h_layout = QHBoxLayout()
         navigation_h_layout.addWidget(self.prev_button)
         navigation_h_layout.addStretch()
-        navigation_h_layout.addWidget(self.delete_question)
+        navigation_h_layout.addWidget(self.delete_button)
         navigation_h_layout.addStretch()
         navigation_h_layout.addWidget(self.next_button)
 
@@ -674,10 +673,6 @@ class CreateChangeQuizWindow(Window):
         self.setLayout(main_v_layout)
 
         self.show_question()
-
-    def on_delete_button(self):
-        if self.new_question:
-            pass
 
     def open_control_quiz_window(self):
         self.window = ControlQuizWindow()
@@ -782,6 +777,23 @@ class CreateChangeQuizWindow(Window):
         self.generate_q_data()
         self.show_question()
 
+    def on_delete_button(self):
+        reply = QMessageBox.question(self, 'Удаление вопроса',
+                                     'Вы действительно хотите удалить этот вопрос\nи все данные в нём?',
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.new_question:
+                self.pages[0] -= 1
+            else:
+                self.questions.pop(self.pages[0] - 1)
+                if self.pages[0] == self.pages[1]:  # last question
+                    self.pages[0] -= 1
+            self.pages[1] -= 1
+            self.delete_widgets(self.answer_choices_v_layout)
+            self.new_question = False
+            self.generate_q_data()
+            self.show_question()
+
     def on_answer_text_changed(self):
         text = self.answer_textbox.toPlainText()
         enabled = self.answer_type_list.currentIndex() < 2 and bool(text) and text not in self.question['choices']
@@ -808,6 +820,7 @@ class CreateChangeQuizWindow(Window):
         self.prev_button.setEnabled(result and self.pages[0] > 1)
         self.next_button.setEnabled(result)
         self.save_button.setEnabled(result)
+        self.delete_button.setEnabled(self.pages[1] > 1)
 
     def save_question(self):
         if self.new_question:

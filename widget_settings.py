@@ -1,5 +1,7 @@
 # TODO:
 #   - create custom messagebox
+#   - add class Quiz
+#   - add class User
 
 import re
 from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QGroupBox, QComboBox, QRadioButton,
@@ -77,8 +79,13 @@ class EditSpin(QSpinBox):
 class TextBox(QPlainTextEdit):
     def __init__(self, text='', fixed_width=0, fixed_height=30):
         super().__init__(text)
-        self.setStyleSheet(
-            'color: #4D7731; font-size: 16px; font-weight: bold; font-family: Courier New; line-wrap: true')
+        self.setStyleSheet("""
+            color: #4D7731;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: Courier New;
+            line-wrap: true
+            """)
         if fixed_width:
             self.setFixedWidth(fixed_width)
         if fixed_height:

@@ -13,7 +13,6 @@ from copy import deepcopy
 from widget_settings import *
 
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QMessageBox
-# from PyQt6.QtGui import QPalette
 from PyQt6.QtCore import Qt
 
 QUIZ_DATA = 'data/quiz.json'
@@ -638,11 +637,12 @@ class CreateChangeQuizWindow(Window):
         settings_h_layout.addWidget(self.note_text)
 
         # Navigation section
-        self.prev_button = Button('1 <<', fixed_width=50)
+        self.prev_button = Button('', fixed_width=50)
+        self.prev_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.prev_button.clicked.connect(self.on_prev_button)
         self.delete_question = Button('Удалить вопрос', fixed_width=200)
         self.delete_question.clicked.connect(self.on_delete_button)
-        self.next_button = Button('+', fixed_width=50)
+        self.next_button = Button('', fixed_width=50)
         self.next_button.clicked.connect(self.on_next_button)
 
         navigation_h_layout = QHBoxLayout()
@@ -711,13 +711,17 @@ class CreateChangeQuizWindow(Window):
 
         # navigation buttons
         if self.pages[0] == 1:  # first question
-            self.prev_button.setText('-')
+            self.prev_button.setText('')
+            self.prev_button.setIcon(QIcon('images/zero-page.png'))
         else:
-            self.prev_button.setText(f'{self.pages[0] - 1} <<')
+            self.prev_button.setText(f'{self.pages[0] - 1}')
+            self.prev_button.setIcon(QIcon('images/arrow-left.png'))
         if self.pages[0] == self.pages[1]:  # last question
-            self.next_button.setText('+')
+            self.next_button.setText('')
+            self.next_button.setIcon(QIcon('images/plus-page.png'))
         else:
-            self.next_button.setText(f'>> {self.pages[0] + 1}')
+            self.next_button.setText(f'{self.pages[0] + 1}')
+            self.next_button.setIcon(QIcon('images/arrow-right.png'))
 
         self.check_data_before_save()
 

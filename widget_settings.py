@@ -33,7 +33,7 @@ class LabelCode(QLabel):
 class LabelNote(QLabel):
     def __init__(self, text: str, fixed_width=0, fixed_height=30):
         super().__init__(text)
-        self.setStyleSheet('color: white; background-color: black; font-size: 12px; padding: 2px 10px 2px 10px')
+        self.setStyleSheet('color: yellow; background-color: black; font-size: 12px; padding: 2px 10px 2px 10px')
         if fixed_width:
             self.setFixedWidth(fixed_width)
         if fixed_height:

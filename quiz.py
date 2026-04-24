@@ -2,7 +2,6 @@
 #   - QuizWindow: scrollbar
 #   - participants
 #   - CreateChangeQuizWindow: delete answer
-#   - CreateChangeQuizWindow: change question order
 #   - CreateChangeQuizWindow: scrollbar
 
 import sys, pygame
@@ -639,13 +638,22 @@ class CreateChangeQuizWindow(Window):
         self.prev_button = Button('', fixed_width=50)
         self.prev_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.prev_button.clicked.connect(self.on_prev_button)
+
+        change_order_label = Label('Очередность вопроса')
+        self.change_order_spinbox = EditSpin(fixed_width=50)
+        self.change_order_spinbox.textChanged.connect(self.on_order_change)
+
         self.delete_button = Button('Удалить вопрос', fixed_width=200)
         self.delete_button.clicked.connect(self.on_delete_button)
+
         self.next_button = Button('', fixed_width=50)
         self.next_button.clicked.connect(self.on_next_button)
 
         navigation_h_layout = QHBoxLayout()
         navigation_h_layout.addWidget(self.prev_button)
+        navigation_h_layout.addStretch()
+        navigation_h_layout.addWidget(change_order_label)
+        navigation_h_layout.addWidget(self.change_order_spinbox)
         navigation_h_layout.addStretch()
         navigation_h_layout.addWidget(self.delete_button)
         navigation_h_layout.addStretch()
@@ -704,19 +712,12 @@ class CreateChangeQuizWindow(Window):
 
         self.show_answer()
 
-        # navigation buttons
-        if self.pages[0] == 1:  # first question
-            self.prev_button.setText('')
-            self.prev_button.setIcon(QIcon('images/zero-page.png'))
-        else:
-            self.prev_button.setText(f'{self.pages[0] - 1}')
-            self.prev_button.setIcon(QIcon('images/arrow-left.png'))
-        if self.pages[0] == self.pages[1]:  # last question
-            self.next_button.setText('')
-            self.next_button.setIcon(QIcon('images/plus-page.png'))
-        else:
-            self.next_button.setText(f'{self.pages[0] + 1}')
-            self.next_button.setIcon(QIcon('images/arrow-right.png'))
+        # navigation section
+        self.show_navigation_buttons()
+        self.change_order_spinbox.blockSignals(True)
+        self.change_order_spinbox.setMaximum(self.pages[1])
+        self.change_order_spinbox.setValue(self.pages[0])
+        self.change_order_spinbox.blockSignals(False)
 
         self.check_data_before_save()
 
@@ -749,6 +750,20 @@ class CreateChangeQuizWindow(Window):
             self.answer_textbox.setPlainText(self.question['A'])
         self.add_answer_button.setEnabled(False)
 
+    def show_navigation_buttons(self):
+        if self.pages[0] == 1:  # first question
+            self.prev_button.setText('')
+            self.prev_button.setIcon(QIcon('images/zero-page.png'))
+        else:
+            self.prev_button.setText(f'{self.pages[0] - 1}')
+            self.prev_button.setIcon(QIcon('images/arrow-left.png'))
+        if self.pages[0] == self.pages[1]:  # last question
+            self.next_button.setText('')
+            self.next_button.setIcon(QIcon('images/plus-page.png'))
+        else:
+            self.next_button.setText(f'{self.pages[0] + 1}')
+            self.next_button.setIcon(QIcon('images/arrow-right.png'))
+
     def on_radio_button_select(self):
         self.question['A'] = str(self.radio_group.checkedId())
         self.check_data_before_save()
@@ -772,7 +787,8 @@ class CreateChangeQuizWindow(Window):
         is_last = self.pages[0] == self.pages[1]  # last question
         self.new_question = is_last
         if is_last:
-            self.pages[1] += 1
+            self.pages[1] += 1  # new question
+            self.change_order_spinbox.setEnabled(False)
         self.pages[0] += 1
         self.generate_q_data()
         self.show_question()
@@ -807,6 +823,23 @@ class CreateChangeQuizWindow(Window):
         self.answer_type_list.setEnabled(False)
         self.show_answer()
         self.check_data_before_save()
+
+    def on_order_change(self):
+        old_page = self.pages[0] - 1
+        new_page = self.change_order_spinbox.value() - 1
+        reply = QMessageBox.question(self, 'Изменение номера вопроса',
+                                     f'Изменить номер вопроса\nс {old_page + 1} на {new_page + 1}?',
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            self.questions[old_page], self.questions[new_page] = self.questions[new_page], self.questions[old_page]
+            self.pages[0] = new_page + 1
+            self.question_group.setTitle(f'Вопрос {self.pages[0]} из {self.pages[1]}')
+            self.show_navigation_buttons()
+            self.check_data_before_save()
+        else:
+            self.change_order_spinbox.blockSignals(True)
+            self.change_order_spinbox.setValue(self.pages[0])
+            self.change_order_spinbox.blockSignals(False)
 
     def check_data_before_save(self):
         q_text = self.question_text.toPlainText()  # question entered
@@ -843,6 +876,7 @@ class CreateChangeQuizWindow(Window):
         question['shuffle'] = self.shuffle_checkbox.isChecked()
         question['show_result'] = self.show_result_checkbox.isChecked()
         question['note'] = self.note_text.toPlainText()
+        self.change_order_spinbox.setEnabled(True)
 
     def save_quiz(self):
         self.save_question()

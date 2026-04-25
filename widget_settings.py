@@ -93,7 +93,7 @@ class TextBox(QPlainTextEdit):
 
 
 class Button(QPushButton):
-    def __init__(self, text: str, fixed_width=0, fixed_height=50):
+    def __init__(self, text: str, fixed_width=0, fixed_height=50, icon_size=24):
         super().__init__()
         self.setText(text)
         self.setStyleSheet("""
@@ -103,7 +103,7 @@ class Button(QPushButton):
             QPushButton::disabled {background-color: #D9D9D9; color: gray; font-weight: bold}
             QPushButton::hover {background-color: #203764; color: white; font-weight: bold}
             """)
-        self.setIconSize(QSize(24, 24))
+        self.setIconSize(QSize(icon_size, icon_size))
         if fixed_width:
             self.setFixedWidth(fixed_width)
         if fixed_height:

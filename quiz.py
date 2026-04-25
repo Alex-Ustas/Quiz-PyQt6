@@ -597,7 +597,8 @@ class CreateChangeQuizWindow(Window):
         answer_label = Label('Введите ответ')
         self.answer_textbox = TextBox(fixed_height=50)
         self.answer_textbox.textChanged.connect(self.on_answer_text_changed)
-        self.add_answer_button = Button('+', fixed_width=50)
+        self.add_answer_button = Button('', fixed_width=50)
+        self.add_answer_button.setIcon(QIcon('images/plus-page.png'))
         self.add_answer_button.clicked.connect(self.on_add_answer_button)
         answer_h_layout.addWidget(answer_label)
         answer_h_layout.addWidget(self.answer_textbox)
@@ -644,7 +645,7 @@ class CreateChangeQuizWindow(Window):
         self.change_order_spinbox.textChanged.connect(self.on_order_change)
 
         self.delete_button = Button('Удалить вопрос', fixed_width=200)
-        self.delete_button.clicked.connect(self.on_delete_button)
+        self.delete_button.clicked.connect(self.on_delete_question_button)
 
         self.next_button = Button('', fixed_width=50)
         self.next_button.clicked.connect(self.on_next_button)
@@ -727,13 +728,27 @@ class CreateChangeQuizWindow(Window):
             answer = int(self.question['A']) if self.question['A'] else -1
             self.answer_textbox.setPlainText('')
             self.radio_group = QButtonGroup(self)
+            self.answer_rows = {}  # dict: ID -> layout
             for i, text in enumerate(self.question['choices']):
+                delete_answer_button = Button('', fixed_width=28, fixed_height=27, icon_size=16)
+                delete_answer_button.setIcon(QIcon('images/delete.png'))
+                delete_answer_button.clicked.connect(lambda checked, idx=i: self.on_delete_answer_button(idx))
                 radio_button = RadioButton(text)
+
+                answer_choices_h_layout = QHBoxLayout()
+                answer_choices_h_layout.addWidget(delete_answer_button)
+                answer_choices_h_layout.addWidget(radio_button)
+
                 self.radio_group.addButton(radio_button, i)
-                self.answer_choices_v_layout.addWidget(radio_button)
+                self.radio_group.addButton(delete_answer_button)
+                self.answer_choices_v_layout.addLayout(answer_choices_h_layout)
+
+                self.answer_rows[i] = answer_choices_h_layout
+
                 if i == answer:
                     radio_button.setChecked(True)
             self.radio_group.buttonToggled.connect(self.on_radio_button_select)  # type: ignore
+
         elif answer_type == 2:  # checkbox
             answers = list(map(int, self.question['A'].split(';'))) if self.question['A'] else []
             self.answer_textbox.setPlainText('')
@@ -746,6 +761,7 @@ class CreateChangeQuizWindow(Window):
                 if i in answers:
                     checkbox.setChecked(True)
             self.check_group.buttonToggled.connect(self.on_checkbox_select)  # type: ignore
+
         else:  # editbox
             self.answer_textbox.setPlainText(self.question['A'])
         self.add_answer_button.setEnabled(False)
@@ -763,6 +779,36 @@ class CreateChangeQuizWindow(Window):
         else:
             self.next_button.setText(f'{self.pages[0] + 1}')
             self.next_button.setIcon(QIcon('images/arrow-right.png'))
+
+    def on_delete_answer_button(self, index):
+        if index < len(self.answer_rows):  # if group already removed and clicked.connect not redefined yet
+            self.delete_widgets(self.answer_rows[index])
+            del self.question['choices'][index]
+            del self.answer_rows[index]
+            self.reassign_ids_sequentially(self.radio_group)
+            self.answer_rows = {k if k < index else k - 1: v for k, v in self.answer_rows.items()}
+
+            answer = int(self.question['A'])
+            if index == answer:
+                self.question['A'] = ''
+            if answer > index:
+                self.question['A'] = str(answer - 1)
+
+            self.check_data_before_save()
+
+    def reassign_ids_sequentially(self, button_group: QButtonGroup):
+        all_buttons = button_group.buttons()
+        explicit_buttons = []  # select radio, checkbox buttons only
+        for button in all_buttons:
+            if isinstance(button, RadioButton) or isinstance(button, CheckBox):
+                explicit_buttons.append((button_group.id(button), button))
+        explicit_buttons.sort(key=lambda x: x[0])
+
+        # reassign new ID only for explicit buttons
+        for new_id, (old_id, button) in enumerate(explicit_buttons):
+            if old_id != new_id:
+                button_group.removeButton(button)
+                button_group.addButton(button, new_id)
 
     def on_radio_button_select(self):
         self.question['A'] = str(self.radio_group.checkedId())
@@ -793,7 +839,7 @@ class CreateChangeQuizWindow(Window):
         self.generate_q_data()
         self.show_question()
 
-    def on_delete_button(self):
+    def on_delete_question_button(self):
         reply = QMessageBox.question(self, 'Удаление вопроса',
                                      'Вы действительно хотите удалить этот вопрос\nи все данные в нём?',
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -864,7 +910,7 @@ class CreateChangeQuizWindow(Window):
         question['Q'] = self.question_text.toPlainText()
         if answer_type == 1:  # radio
             question['choices'] = [choice for choice in self.question['choices']]
-            question['A'] = str(self.radio_group.checkedId())
+            question['A'] = str(self.question['A'])
         elif answer_type == 2:  # checkbox
             question['choices'] = [choice for choice in self.question['choices']]
             question['A'] = ';'.join(

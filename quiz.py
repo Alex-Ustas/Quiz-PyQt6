@@ -1,8 +1,9 @@
 # TODO:
 #   - QuizWindow: scrollbar
-#   - participants
-#   - CreateChangeQuizWindow: delete answer
 #   - CreateChangeQuizWindow: scrollbar
+#   - participants
+#   - add class Quiz
+#   - add class User
 
 import sys, pygame
 import loader
@@ -257,32 +258,38 @@ class QuizWindow(Window):
             print(f'\033[1m\033[33mtype = {self.answer_type} not defined\033[0m')
 
     def on_click_confirm(self):
+        show_result = self.quiz['questions'][self.question]['show_result']
         self.confirm_button.setText('Продолжить' if self.to_confirm else 'Подтвердить')
         if self.to_confirm:  # check and show current result
             match = 0
             if self.answer_type == 1:  # radio
                 if self.radio_group.checkedButton().text() == self.correct_answers[0]:
                     match = 1
-                for radio in self.radio_group.buttons():
-                    if radio.text() == self.correct_answers[0]:
-                        change_style(radio, 'color', 'green')
-                    elif radio.isChecked():
-                        change_style(radio, 'color', 'red')
+                if show_result:
+                    for radio in self.radio_group.buttons():
+                        if radio.text() == self.correct_answers[0]:
+                            change_style(radio, 'color', 'green')
+                        elif radio.isChecked():
+                            change_style(radio, 'color', 'red')
             elif self.answer_type == 2:  # checkbox
                 match = 1
                 for checkbox in self.check_group.buttons():
                     if checkbox.isChecked() and checkbox.text() in self.correct_answers:
-                        change_style(checkbox, 'color', 'green')
+                        if show_result:
+                            change_style(checkbox, 'color', 'green')
                     elif checkbox.isChecked() or checkbox.text() in self.correct_answers:
-                        change_style(checkbox, 'color', 'red')
+                        if show_result:
+                            change_style(checkbox, 'color', 'red')
                         match = 0
             elif self.answer_type == 3:  # editbox
                 if self.edit_result.text() == self.correct_answers[0]:
                     match = 1
-                    change_style(self.edit_result, 'color', 'green')
+                    if show_result:
+                        change_style(self.edit_result, 'color', 'green')
                 else:
-                    change_style(self.edit_result, 'color', 'red')
-                if match == 0:
+                    if show_result:
+                        change_style(self.edit_result, 'color', 'red')
+                if match == 0 and show_result:
                     result_label = LabelCode(f'Правильный ответ: {self.correct_answers[0]}')
                     self.answer_v_layout.addWidget(result_label)
                     self.answer_v_layout.addStretch()

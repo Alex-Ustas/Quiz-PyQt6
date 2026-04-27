@@ -1,7 +1,5 @@
 # TODO:
 #   - create custom messagebox
-#   - add class Quiz
-#   - add class User
 
 import re
 from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QGroupBox, QComboBox, QRadioButton,

@@ -753,11 +753,21 @@ class CreateChangeQuizWindow(Window):
             self.check_group = QButtonGroup(self)
             self.check_group.setExclusive(False)
             for i, text in enumerate(self.question['choices']):
+                delete_answer_button = Button('', fixed_width=28, fixed_height=27, icon_size=16)
+                delete_answer_button.setIcon(QIcon('images/delete.png'))
+                delete_answer_button.clicked.connect(lambda checked, idx=i: self.on_delete_answer_button(idx))
+
                 checkbox = CheckBox(text)
-                self.check_group.addButton(checkbox, i)
-                self.answer_choices_v_layout.addWidget(checkbox)
                 if i in answers:
                     checkbox.setChecked(True)
+
+                answer_choices_h_layout = QHBoxLayout()
+                answer_choices_h_layout.addWidget(delete_answer_button)
+                answer_choices_h_layout.addWidget(checkbox)
+
+                self.check_group.addButton(checkbox, i)
+                self.check_group.addButton(delete_answer_button)
+                self.answer_choices_v_layout.addLayout(answer_choices_h_layout)
             self.check_group.buttonToggled.connect(self.on_checkbox_select)  # type: ignore
 
         else:  # editbox
@@ -781,12 +791,19 @@ class CreateChangeQuizWindow(Window):
     def on_delete_answer_button(self, index):
         self.delete_widgets(self.answer_choices_v_layout)
         del self.question['choices'][index]
-
-        answer = int(self.question['A'])
-        if index == answer:
-            self.question['A'] = ''
-        if answer > index:
-            self.question['A'] = str(answer - 1)
+        answer_type = self.answer_type_list.currentIndex() + 1
+        if answer_type == 1:  # radio
+            answer = int(self.question['A'])
+            if index == answer:
+                self.question['A'] = ''
+            if answer > index:
+                self.question['A'] = str(answer - 1)
+        else:  # checkbox
+            answers = list(map(int, self.question['A'].split(';')))
+            if index in answers:
+                answers.remove(index)
+            answers = [a if a < index else a - 1 for a in answers]
+            self.question['A'] = ';'.join(map(str, answers))
 
         self.show_answer()
         self.check_data_before_save()
@@ -796,8 +813,13 @@ class CreateChangeQuizWindow(Window):
         self.check_data_before_save()
 
     def on_checkbox_select(self):
-        self.question['A'] = ';'.join(
-            [str(i) for i, button in enumerate(self.check_group.buttons()) if button.isChecked()])
+        answer_id, answers = 0, []
+        for button in self.check_group.buttons():
+            if isinstance(button, CheckBox):
+                if button.isChecked():
+                    answers.append(answer_id)
+                answer_id += 1
+        self.question['A'] = ';'.join(map(str, answers))
         self.check_data_before_save()
 
     def on_prev_button(self):
@@ -891,11 +913,10 @@ class CreateChangeQuizWindow(Window):
         question['Q'] = self.question_text.toPlainText()
         if answer_type == 1:  # radio
             question['choices'] = [choice for choice in self.question['choices']]
-            question['A'] = str(self.question['A'])
+            question['A'] = self.question['A']
         elif answer_type == 2:  # checkbox
             question['choices'] = [choice for choice in self.question['choices']]
-            question['A'] = ';'.join(
-                [str(i) for i, button in enumerate(self.check_group.buttons()) if button.isChecked()])
+            question['A'] = self.question['A']
         else:  # editbox
             question['choices'] = []
             question['A'] = self.answer_textbox.toPlainText()

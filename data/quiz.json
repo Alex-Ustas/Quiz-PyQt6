@@ -2558,14 +2558,14 @@
         "type": 1,
         "Q": "Какой индекс у числа 17 в списке numbers?\nnumbers = [1, 100, 7, 20, 17, 37, 22]",
         "choices": [
-          "6",
-          "5",
+          "3",
           "4",
-          "3"
+          "5",
+          "6"
         ],
-        "A": "2",
+        "A": "1",
         "weight": 1,
-        "shuffle": true,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       },

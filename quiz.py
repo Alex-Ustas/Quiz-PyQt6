@@ -3,7 +3,6 @@
 #   - CreateChangeQuizWindow: scrollbar
 #   - participants
 #   - add class Quiz
-#   - add class User
 
 import sys, pygame
 import loader
@@ -52,6 +51,7 @@ class SelectQuizWindow(Window):
     def __init__(self):
         super().__init__('Выбор квиза', 500, 380)
         self.quiz = loader.get_json_data(QUIZ_DATA)
+        self.users = User()
         self.setUpWindow()
 
     def setUpWindow(self):
@@ -70,8 +70,7 @@ class SelectQuizWindow(Window):
         self.quiz_combo_box.currentIndexChanged.connect(self.on_select_quiz)
         quiz_h_layout.addWidget(self.quiz_combo_box)
 
-        self.user = loader.get_json_data(USER_DATA)
-        user_list = [u['name'] for u in self.user]
+        user_list = self.users.get_name_list()
         user_list.insert(0, 'Выберите участника')
         self.user_combo_box = ComboList()
         self.user_combo_box.addItems(user_list)
@@ -116,8 +115,7 @@ class SelectQuizWindow(Window):
 
     def open_quiz_window(self):
         selected_quiz = get_filtered_data('id', self.quiz_combo_box.currentText(), self.quiz)
-        selected_user = get_filtered_data('name', self.user_combo_box.currentText(), self.user)
-        self.window = QuizWindow(selected_quiz, selected_user)
+        self.window = QuizWindow(selected_quiz, self.user_combo_box.currentText())
         self.window.show()
         self.close()
 
@@ -138,9 +136,9 @@ class SelectQuizWindow(Window):
         self.user_attempts_label.setText('')
         color = 'green'
         if index:
-            selected_user = get_filtered_data('name', self.user_combo_box.itemText(index), self.user)
-            answered = sum([rank[0] for quiz in selected_user['results'].values() for rank in quiz])
-            total = sum([rank[1] for quiz in selected_user['results'].values() for rank in quiz])
+            user_id = self.user_combo_box.itemText(index)
+            selected_user = self.users[user_id]
+            answered, total = self.users.get_total_score(user_id)
             percent = count_percent(answered, total)
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
             self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
@@ -165,9 +163,9 @@ class SelectQuizWindow(Window):
 
 
 class QuizWindow(Window):
-    def __init__(self, quiz: dict, user: dict):
+    def __init__(self, quiz: dict, user_id: str):
         self.quiz = quiz
-        self.user = user
+        self.user = User()[user_id]
         self.question = 0  # question number
         self.answer_type = None  # answer type: 1 - radio, 2 - checkbox, 3 - editbox
         self.to_confirm = True  # switch for confirm button
@@ -312,7 +310,7 @@ class QuizWindow(Window):
             self.update_statusbar()
         else:  # next question
             if self.question == self.score[2] - 1:  # open result window
-                self.window = ResultWindow(self.quiz, self.user, self.score)
+                self.window = ResultWindow(self.quiz, self.user['name'], self.score)
                 self.window.show()
                 self.close()
             else:  # remove current widgets and show next question
@@ -344,16 +342,16 @@ class QuizWindow(Window):
 
 
 class ResultWindow(Window):
-    def __init__(self, quiz: dict, user: dict, score: list[int]):
+    def __init__(self, quiz: dict, user_id: str, score: list[int]):
         self.quiz = quiz
-        self.user = user
+        self.user = User(user_id)
         self.score = score
         self.max_score = score[0] == score[1]
         super().__init__('Результат', 400, 250)
         self.setUpWindow()
 
     def setUpWindow(self):
-        user_label = Label(self.user['name'], fixed_height=0)
+        user_label = Label(self.user.name, fixed_height=0)
         user_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         user_label.setWordWrap(True)
 
@@ -371,21 +369,20 @@ class ResultWindow(Window):
             change_style(answer_label, 'color', 'red')
         answer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        if self.quiz['id'] not in self.user['results']:
+        if self.quiz['id'] not in self.user.results:
             attempt_text = 'Первая попытка'
             if self.max_score:
                 attempt_text += '. Отличный результат!'
         else:
-            attempt_text = f'Попытка {len(self.user['results'][self.quiz['id']]) + 1}'
-            if (self.max_score or self.score[0] / self.score[1] >
-                    max([s[0] / s[1] for s in self.user['results'][self.quiz['id']]])):
+            quiz_results = self.user.results[self.quiz['id']]
+            attempt_text = f'Попытка {len(quiz_results) + 1}'
+            if self.max_score or self.score[0] / self.score[1] > max([s[0] / s[1] for s in quiz_results]):
                 attempt_text += '. Лучший результат!'
         attempt_label = Label(attempt_text, fixed_height=0)
         attempt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         change_style(attempt_label, 'color', 'green')
 
-        answered = sum([rank[0] for quiz in self.user['results'].values() for rank in quiz]) + self.score[0]
-        total = sum([rank[1] for quiz in self.user['results'].values() for rank in quiz]) + self.score[1]
+        answered, total = self.user.get_total_score()
         percent = count_percent(answered, total)
         total_score_label = Label(f'Общий счет: {answered} из {total} ({percent:.2f}%)', fixed_height=0)
         total_score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -409,7 +406,7 @@ class ResultWindow(Window):
         main_v_layout.addWidget(button_back)
         self.setLayout(main_v_layout)
 
-        loader.save_user_data(USER_DATA, self.user['name'], self.quiz['id'], self.score)
+        self.user.save_quiz_for_user(self.quiz['id'], self.score)
 
     def open_main_window(self):
         self.window = WelcomeWindow()
@@ -557,10 +554,8 @@ class ControlQuizWindow(Window):
             self.quiz_combo_box.addItems(self.quiz_list)
             self.quiz_combo_box.setCurrentText('')
 
-            userdata = loader.get_json_data(USER_DATA)
-            for user in userdata:
-                user['results'].pop(quiz_id, None)
-            loader.save_data(USER_DATA, userdata)
+            users = User()
+            users.remove_quiz(quiz_id)
             loader.save_data(QUIZ_DATA, self.quiz)
 
 
@@ -947,6 +942,55 @@ class CreateChangeQuizWindow(Window):
         quiz['questions'] = self.questions
         loader.save_data(QUIZ_DATA, quiz_data)
         self.open_control_quiz_window()
+
+
+class User:
+    def __init__(self, user_id=None):
+        self.users = self.load()
+        self.user = self[user_id]
+        self.name = user_id if user_id else ''
+        self.results = self[user_id]['results'] if self.user else {}
+
+    def __len__(self):
+        return len(self.users)
+
+    def __getitem__(self, user_id):
+        user = list(filter(lambda x: x['name'] == user_id, self.users))
+        return user[0] if user else {}
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return repr(self.user)
+
+    def get_name_list(self):
+        return [self.users[i]['name'] for i in range(len(self))]
+
+    def get_total_score(self, name=None):
+        user = self[name] if name else self.user
+        if user:
+            answered = sum([rank[0] for quiz in user['results'].values() for rank in quiz])
+            total = sum([rank[1] for quiz in user['results'].values() for rank in quiz])
+            return answered, total
+        else:
+            return 0, -1
+
+    def remove_quiz(self, quiz_id: str, save=True):
+        for user in self.users:
+            user['results'].pop(quiz_id, None)
+        if save:
+            self.save()
+
+    @staticmethod
+    def load():
+        return loader.get_json_data(USER_DATA)
+
+    def save(self):
+        loader.save_data(USER_DATA, self.users)
+
+    def save_quiz_for_user(self, quiz_id: str, score: list):
+        loader.save_user_data(USER_DATA, self.name, quiz_id, score)
 
 
 def count_percent(n: int, total: int) -> float:

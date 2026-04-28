@@ -25,7 +25,7 @@ def save_user_data(file: str, name: str, quiz: str, score: list):
             else:
                 data[i]['results'][quiz] = [[score[0], score[1] , date_now]]
     with open(file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def save_data(file: str, data: list):

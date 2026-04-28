@@ -800,13 +800,13 @@ class CreateChangeQuizWindow(Window):
         del self.question['choices'][index]
         answer_type = self.answer_type_list.currentIndex() + 1
         if answer_type == 1:  # radio
-            answer = int(self.question['A'])
+            answer = int(self.question['A']) if self.question['A'] else -1
             if index == answer:
                 self.question['A'] = ''
             if answer > index:
                 self.question['A'] = str(answer - 1)
         else:  # checkbox
-            answers = list(map(int, self.question['A'].split(';')))
+            answers = list(map(int, self.question['A'].split(';'))) if self.question['A'] else []
             if index in answers:
                 answers.remove(index)
             answers = [a if a < index else a - 1 for a in answers]

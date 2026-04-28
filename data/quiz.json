@@ -35,7 +35,7 @@
         "A": "2;3",
         "weight": 1,
         "shuffle": true,
-        "show_result": true,
+        "show_result": false,
         "note": ""
       },
       {
@@ -45,7 +45,7 @@
         "A": "5",
         "weight": 1,
         "shuffle": true,
-        "show_result": true,
+        "show_result": false,
         "note": "Объявление функции должно предшествовать её вызову."
       }
     ]
@@ -3187,7 +3187,7 @@
   },
   {
     "id": "21",
-    "name": "Функции. Часть 1",
+    "name": "Функции. Общее определение",
     "playsound": true,
     "questions": [
       {
@@ -3220,7 +3220,7 @@
         "weight": 1,
         "shuffle": true,
         "show_result": true,
-        "note": "В имени функции используются только латинские буквы a-z, A-Z, цифры и символ нижнего подчеркивания (_), при этом функция не может начинаться с цифры."
+        "note": "В имени функции используются только латинские буквы a-z, A-Z, цифры и символ нижнего подчеркивания (_), при этом функция не может начинаться с цифры"
       },
       {
         "type": 1,
@@ -3305,6 +3305,135 @@
         "A": "0;2",
         "weight": 1,
         "shuffle": false,
+        "show_result": true,
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": "22",
+    "name": "Локальные и глобальные переменные",
+    "playsound": true,
+    "questions": [
+      {
+        "type": 1,
+        "Q": "Переменная, которая создается внутри функции, называется",
+        "choices": [
+          "скрытая переменная",
+          "локальная переменная",
+          "глобальная переменная",
+          "ничего из вышеперечисленного\nвы не можете создавать переменную внутри функции"
+        ],
+        "A": "1",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Разрешается ли, чтобы локальная переменная в одной функции имела то же имя, что и локальная переменная в другой функции?",
+        "choices": [
+          "да",
+          "нет"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef print_paris(): \n    s = 'I love Paris'\n    print(s)\n\ns = 'I love Moscow'\nprint_paris()\nprint(s)",
+        "choices": [
+          "I love Paris\nI love Moscow",
+          "I love Moscow\nI love Paris",
+          "I love Moscow\nI love Moscow",
+          "I love Paris\nI love Paris",
+          "произойдет ошибка"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef swap(a, b):\n    a, b = b, a\n\na = 4\nb = 3\nswap(a, b)\nprint(a - b)",
+        "choices": [
+          "1",
+          "4",
+          "0",
+          "3",
+          "-1"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Переменная, которая видима любой функции в программном файле, называется",
+        "choices": [
+          "программной переменной",
+          "универсальной переменной",
+          "локальной переменной",
+          "глобальной переменной"
+        ],
+        "A": "3",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 2,
+        "Q": "Какие из переменных в приведённом ниже коде являются локальными?\n\nnum = 5\n\ndef draw_triangle(height, char):\n    for i in range(height):\n        print(char * (i + 1))\n\nx = 7\nsymbol = '#'\ndraw_triangle(x, '*')\ndraw_triangle(num, symbol)",
+        "choices": [
+          "i",
+          "x",
+          "num",
+          "height",
+          "char",
+          "symbol"
+        ],
+        "A": "0;3;4",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\nx = 5\n\ndef add():\n    global x\n    x = 3\n    x = x + 5\n    print(x)\n\nadd()\nprint(x)",
+        "choices": [
+          "5\n5",
+          "3\n8",
+          "8\n8",
+          "8\n5"
+        ],
+        "A": "2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 2,
+        "Q": "Выберите верные утверждения",
+        "choices": [
+          "после выхода из функции локальные переменные станут недоступны",
+          "локальные переменные, определенные в пределах функции, действуют только в ней",
+          "глобальные переменные доступны для всех функций",
+          "глобальные переменные облегчают отладку программы"
+        ],
+        "A": "0;1;2",
+        "weight": 1,
+        "shuffle": true,
         "show_result": true,
         "note": ""
       }

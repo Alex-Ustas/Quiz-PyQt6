@@ -2,7 +2,6 @@
 #   - QuizWindow: scrollbar
 #   - CreateChangeQuizWindow: scrollbar
 #   - participants
-#   - add class Quiz
 
 import sys, pygame
 import loader
@@ -50,7 +49,7 @@ class WelcomeWindow(Window):
 class SelectQuizWindow(Window):
     def __init__(self):
         super().__init__('Выбор квиза', 500, 380)
-        self.quiz = loader.get_json_data(QUIZ_DATA)
+        self.quizzes = Quiz()
         self.users = User()
         self.setUpWindow()
 
@@ -63,7 +62,7 @@ class SelectQuizWindow(Window):
         user_h_layout = QHBoxLayout()
         user_h_layout.addWidget(user_label)
 
-        quiz_list = [q['id'] for q in self.quiz]
+        quiz_list = self.quizzes.get_id_list()
         quiz_list.insert(0, 'Выберите квиз')
         self.quiz_combo_box = ComboList()
         self.quiz_combo_box.addItems(quiz_list)
@@ -114,8 +113,7 @@ class SelectQuizWindow(Window):
         self.close()
 
     def open_quiz_window(self):
-        selected_quiz = get_filtered_data('id', self.quiz_combo_box.currentText(), self.quiz)
-        self.window = QuizWindow(selected_quiz, self.user_combo_box.currentText())
+        self.window = QuizWindow(self.quiz_combo_box.currentText(), self.user_combo_box.currentText())
         self.window.show()
         self.close()
 
@@ -123,7 +121,7 @@ class SelectQuizWindow(Window):
         self.quiz_name_label.setText(f'Название квиза:')
         self.quiz_questions_label.setText(f'Всего вопросов:')
         if index:
-            selected_quiz = get_filtered_data('id', self.quiz_combo_box.itemText(index), self.quiz)
+            selected_quiz = self.quizzes[self.quiz_combo_box.itemText(index)]
             self.quiz_name_label.setText(f'Название квиза: {selected_quiz['name']}')
             self.quiz_questions_label.setText(f'Всего вопросов: {len(selected_quiz['questions'])}')
         if self.user_combo_box.currentIndex():
@@ -163,16 +161,16 @@ class SelectQuizWindow(Window):
 
 
 class QuizWindow(Window):
-    def __init__(self, quiz: dict, user_id: str):
-        self.quiz = quiz
-        self.user = User()[user_id]
+    def __init__(self, quiz_id: str, user_id: str):
+        self.quiz = Quiz(quiz_id)
+        self.user = User(user_id)
         self.question = 0  # question number
         self.answer_type = None  # answer type: 1 - radio, 2 - checkbox, 3 - editbox
         self.to_confirm = True  # switch for confirm button
-        self.score = [0, 0, len(self.quiz['questions'])]  # result: correct answers, total answered, total questions
+        self.score = [0, 0, len(self.quiz.questions)]  # result: correct answers, total answered, total questions
         self.correct_answers = []
 
-        super().__init__(f'Quiz {quiz['id']} {quiz['name']}', 1000, 800)
+        super().__init__(f'Quiz {str(self.quiz)}', 1000, 800)
         self.setUpWindow()
 
     def setUpWindow(self):
@@ -210,7 +208,7 @@ class QuizWindow(Window):
         self.show_question()
 
     def show_question(self):
-        q_data = self.quiz['questions'][self.question]
+        q_data = self.quiz.questions[self.question]
         self.answer_type = q_data['type']
         choices = q_data['choices']
         if self.answer_type == 3:  # editbox
@@ -256,7 +254,7 @@ class QuizWindow(Window):
             print(f'\033[1m\033[33mtype = {self.answer_type} not defined\033[0m')
 
     def on_click_confirm(self):
-        show_result = self.quiz['questions'][self.question]['show_result']
+        show_result = self.quiz.questions[self.question]['show_result']
         self.confirm_button.setText('Продолжить' if self.to_confirm else 'Подтвердить')
         if self.to_confirm:  # check and show current result
             match = 0
@@ -293,14 +291,14 @@ class QuizWindow(Window):
                     self.answer_v_layout.addStretch()
 
             # play sound
-            if self.quiz['playsound']:
+            if self.quiz.playsound:
                 pygame.mixer.init()
                 pygame.init()
                 sound = pygame.mixer.Sound(RESULT_SOUND[match])
                 sound.play()
 
             # show note
-            note = self.quiz['questions'][self.question]['note']
+            note = self.quiz.questions[self.question]['note']
             if note:
                 self.note_label.setText(note)
                 self.note_label.setHidden(False)
@@ -310,7 +308,7 @@ class QuizWindow(Window):
             self.update_statusbar()
         else:  # next question
             if self.question == self.score[2] - 1:  # open result window
-                self.window = ResultWindow(self.quiz, self.user['name'], self.score)
+                self.window = ResultWindow(self.quiz.quiz_id, self.user.name, self.score)
                 self.window.show()
                 self.close()
             else:  # remove current widgets and show next question
@@ -337,13 +335,13 @@ class QuizWindow(Window):
             self.on_click_confirm()
 
     def update_statusbar(self):
-        status_text = f'{self.user['name']}: правильных ответов {self.score[0]} из {self.score[1]}'
+        status_text = f'{self.user.name}: правильных ответов {self.score[0]} из {self.score[1]}'
         self.progressbar.set_values(self.score[0], self.score[1] - self.score[0], self.score[2], status_text)
 
 
 class ResultWindow(Window):
-    def __init__(self, quiz: dict, user_id: str, score: list[int]):
-        self.quiz = quiz
+    def __init__(self, quiz_id: str, user_id: str, score: list[int]):
+        self.quiz = Quiz(quiz_id)
         self.user = User(user_id)
         self.score = score
         self.max_score = score[0] == score[1]
@@ -355,7 +353,7 @@ class ResultWindow(Window):
         user_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         user_label.setWordWrap(True)
 
-        quiz_label = Label(self.quiz['id'] + ' ' + self.quiz['name'], fixed_height=0)
+        quiz_label = Label(str(self.quiz), fixed_height=0)
         quiz_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         quiz_label.setWordWrap(True)
 
@@ -369,12 +367,12 @@ class ResultWindow(Window):
             change_style(answer_label, 'color', 'red')
         answer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        if self.quiz['id'] not in self.user.results:
+        if self.quiz.quiz_id not in self.user.results:
             attempt_text = 'Первая попытка'
             if self.max_score:
                 attempt_text += '. Отличный результат!'
         else:
-            quiz_results = self.user.results[self.quiz['id']]
+            quiz_results = self.user.results[self.quiz.quiz_id]
             attempt_text = f'Попытка {len(quiz_results) + 1}'
             if self.max_score or self.score[0] / self.score[1] > max([s[0] / s[1] for s in quiz_results]):
                 attempt_text += '. Лучший результат!'
@@ -383,6 +381,8 @@ class ResultWindow(Window):
         change_style(attempt_label, 'color', 'green')
 
         answered, total = self.user.get_total_score()
+        answered += self.score[0]
+        total += self.score[1]
         percent = count_percent(answered, total)
         total_score_label = Label(f'Общий счет: {answered} из {total} ({percent:.2f}%)', fixed_height=0)
         total_score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -406,7 +406,7 @@ class ResultWindow(Window):
         main_v_layout.addWidget(button_back)
         self.setLayout(main_v_layout)
 
-        self.user.save_quiz_for_user(self.quiz['id'], self.score)
+        self.user.save_quiz_for_user(self.quiz.quiz_id, self.score)
 
     def open_main_window(self):
         self.window = WelcomeWindow()
@@ -417,8 +417,8 @@ class ResultWindow(Window):
 class ControlQuizWindow(Window):
     def __init__(self):
         self.to_save = False  # switch for save/change
-        self.quiz = loader.get_json_data(QUIZ_DATA)
-        self.quiz_list = [q['id'] for q in self.quiz]
+        self.quiz = Quiz()
+        self.quiz_list = self.quiz.get_id_list()
         super().__init__('Управление квизами', 570, 280)
         self.setUpWindow()
 
@@ -456,7 +456,7 @@ class ControlQuizWindow(Window):
         self.create_button.setEnabled(False)
         self.change_button.setEnabled(False)
         self.delete_button.setEnabled(False)
-        self.create_button.clicked.connect(self.open_create_window)
+        self.create_button.clicked.connect(self.open_create_cnahge_window)
         self.change_button.clicked.connect(self.on_change_button)
         self.delete_button.clicked.connect(self.on_delete_button)
         buttons_h_layout = QHBoxLayout()
@@ -481,17 +481,9 @@ class ControlQuizWindow(Window):
         self.window.show()
         self.close()
 
-    def open_create_window(self):
+    def open_create_cnahge_window(self):
         data = (self.quiz_combo_box.currentText(), self.name_editbox.text(), self.sound_checkbox.isChecked())
         self.window = CreateChangeQuizWindow(data)
-        self.window.show()
-        self.close()
-
-    def open_change_window(self):
-        quiz_id = self.quiz_combo_box.currentText()
-        data = (quiz_id, self.name_editbox.text(), self.sound_checkbox.isChecked())
-        quiz = get_filtered_data('id', quiz_id, self.quiz)
-        self.window = CreateChangeQuizWindow(data, quiz['questions'])
         self.window.show()
         self.close()
 
@@ -503,7 +495,7 @@ class ControlQuizWindow(Window):
         self.change_button.setEnabled(bool(quiz_id and quiz_id in self.quiz_list and quiz_name))
         self.delete_button.setEnabled(bool(quiz_id and quiz_id in self.quiz_list))
         if quiz_id and quiz_id in self.quiz_list:
-            quiz = get_filtered_data('id', self.quiz_combo_box.currentText(), self.quiz)
+            quiz = self.quiz[self.quiz_combo_box.currentText()]
             self.name_editbox.setText(quiz['name'])
             self.sound_checkbox.setChecked(quiz['playsound'])
         else:
@@ -521,7 +513,7 @@ class ControlQuizWindow(Window):
             self.create_button.setEnabled(True)
         elif quiz_id in self.quiz_list:
             self.change_button.setEnabled(True)
-            q_data = get_filtered_data('id', quiz_id, self.quiz)
+            q_data = self.quiz[quiz_id]
             if self.sound_checkbox.isChecked() == q_data['playsound'] and quiz_name == q_data['name']:
                 self.change_button.setText('Изменить')
                 self.to_save = False
@@ -531,13 +523,13 @@ class ControlQuizWindow(Window):
 
     def on_change_button(self):
         if self.to_save:
-            self.quiz[self.quiz_combo_box.currentIndex()]['name'] = self.name_editbox.text()
-            self.quiz[self.quiz_combo_box.currentIndex()]['playsound'] = self.sound_checkbox.isChecked()
-            loader.save_data(QUIZ_DATA, self.quiz)
+            self.quiz[self.quiz_combo_box.currentText()]['name'] = self.name_editbox.text()
+            self.quiz[self.quiz_combo_box.currentText()]['playsound'] = self.sound_checkbox.isChecked()
+            self.quiz.save()
             self.change_button.setText('Изменить')
             self.to_save = False
         else:
-            self.open_change_window()
+            self.open_create_cnahge_window()
 
     def on_delete_button(self):
         quiz_id = self.quiz_combo_box.currentText()
@@ -545,9 +537,9 @@ class ControlQuizWindow(Window):
                                      f'Вы действительно хотите удалить квиз\n{quiz_id} {self.name_editbox.text()}?',
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
-            index = list(filter(lambda q: q[1]['id'] == quiz_id, enumerate(self.quiz)))[0][0]
+            index = self.quiz.get_index_by_id(quiz_id)
             del self.quiz[index]
-            self.quiz_list = [q['id'] for q in self.quiz]
+            self.quiz_list = self.quiz.get_id_list()
             self.name_editbox.setText('')
             self.sound_checkbox.setChecked(True)
             self.quiz_combo_box.clear()
@@ -556,14 +548,15 @@ class ControlQuizWindow(Window):
 
             users = User()
             users.remove_quiz(quiz_id)
-            loader.save_data(QUIZ_DATA, self.quiz)
+            self.quiz.save()
 
 
 class CreateChangeQuizWindow(Window):
-    def __init__(self, quiz_data: tuple, questions=None):
+    def __init__(self, quiz_data: tuple):
         self.quiz_id, self.quiz_name, self.playsound = quiz_data
-        self.new_question = self.is_new = bool(questions is None)
-        self.questions = [] if self.is_new else questions  # data for all questions
+        self.quiz = Quiz(self.quiz_id)
+        self.new_question = self.is_new = not bool(self.quiz.quiz)
+        self.questions = self.quiz.questions  # data for all questions
         self.pages = [1, 1] if self.is_new else [1, len(self.questions)]  # current, total
         self.question = {}
         self.generate_q_data()
@@ -692,14 +685,7 @@ class CreateChangeQuizWindow(Window):
 
     def generate_q_data(self) -> None:
         if self.new_question:  # default data for new question
-            self.question = {'type': 1,
-                             'Q': '',
-                             'choices': [],
-                             'A': '',
-                             'weight': 1,
-                             'shuffle': True,
-                             'show_result': True,
-                             'note': ''}
+            self.question = self.quiz.get_default_question_data()
         else:
             self.question = deepcopy(self.questions[self.pages[0] - 1])
 
@@ -930,17 +916,8 @@ class CreateChangeQuizWindow(Window):
 
     def save_quiz(self):
         self.save_question()
-        quiz_data = loader.get_json_data(QUIZ_DATA)
-        if self.is_new:
-            quiz_data.append(dict())
-            quiz = quiz_data[-1]
-            quiz['id'] = self.quiz_id
-            quiz['name'] = self.quiz_name
-            quiz['playsound'] = self.playsound
-        else:
-            quiz = get_filtered_data('id', self.quiz_id, quiz_data)
-        quiz['questions'] = self.questions
-        loader.save_data(QUIZ_DATA, quiz_data)
+        self.quiz[self.quiz_id] = (self.quiz_name, self.playsound, self.questions)
+        self.quiz.save()
         self.open_control_quiz_window()
 
 
@@ -991,6 +968,74 @@ class User:
 
     def save_quiz_for_user(self, quiz_id: str, score: list):
         loader.save_user_data(USER_DATA, self.name, quiz_id, score)
+
+
+class Quiz:
+    def __init__(self, quiz_id=None):
+        self.quizzes = self.load()
+        self.quiz = self[quiz_id]
+        self.quiz_id = quiz_id if quiz_id else ''
+        self.name = self.quiz['name'] if self.quiz else ''
+        self.questions = self.quiz['questions'] if self.quiz else []
+        self.playsound = self.quiz['playsound'] if self.quiz else True
+
+    def __len__(self):
+        return len(self.quizzes)
+
+    def __getitem__(self, quiz_id):
+        quiz = list(filter(lambda x: x['id'] == quiz_id, self.quizzes))
+        return quiz[0] if quiz else {}
+
+    def __setitem__(self, quiz_id, data):
+        quiz_name, playsound, questions = data
+        quiz = self[quiz_id]
+        if not bool(quiz):
+            self.quizzes.append({})
+            quiz = self.quizzes[-1]
+            quiz['id'] = quiz_id
+            quiz['name'] = quiz_name
+            quiz['playsound'] = playsound
+        quiz['questions'] = questions
+
+    def __str__(self):
+        return (self.quiz_id + ' ' + self.name).strip()
+
+    def __repr__(self):
+        return repr(self.quiz)
+
+    def __contains__(self, item):
+        return item in self.get_id_list()
+
+    def __iter__(self):
+        yield from self.quizzes
+
+    def __delitem__(self, index):
+        del self.quizzes[index]
+
+    def get_index_by_id(self, quiz_id: str):
+        index_list = list(filter(lambda q: q[1]['id'] == quiz_id, enumerate(self.quizzes)))
+        return index_list[0][0] if index_list else None
+
+    def get_id_list(self):
+        return [self.quizzes[i]['id'] for i in range(len(self))]
+
+    @staticmethod
+    def get_default_question_data():
+        return {'type': 1,
+                'Q': '',
+                'choices': [],
+                'A': '',
+                'weight': 1,
+                'shuffle': True,
+                'show_result': True,
+                'note': ''}
+
+    @staticmethod
+    def load():
+        return loader.get_json_data(QUIZ_DATA)
+
+    def save(self):
+        loader.save_data(QUIZ_DATA, self.quizzes)
 
 
 def count_percent(n: int, total: int) -> float:

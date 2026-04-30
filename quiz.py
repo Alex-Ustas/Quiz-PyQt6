@@ -28,6 +28,7 @@ class WelcomeWindow(Window):
         button_control_quiz = Button('Управлять квизами')
         button_control_quiz.clicked.connect(self.open_control_quiz_window)
         button_users = Button('Участники')
+        button_users.clicked.connect(self.open_control_user_window)
 
         main_v_layout = QVBoxLayout()
         main_v_layout.addWidget(button_run_quiz)
@@ -42,6 +43,11 @@ class WelcomeWindow(Window):
 
     def open_control_quiz_window(self):
         self.window = ControlQuizWindow()
+        self.window.show()
+        self.close()
+
+    def open_control_user_window(self):
+        self.window = ControlUserWindow()
         self.window.show()
         self.close()
 
@@ -427,9 +433,8 @@ class ControlQuizWindow(Window):
         quiz_h_layout = QHBoxLayout()
         quiz_h_layout.addWidget(quiz_label)
 
-        self.quiz_combo_box = ComboList(fixed_width=100)
+        self.quiz_combo_box = ComboList(fixed_width=100, editable=True)
         self.quiz_combo_box.addItems(self.quiz_list)
-        self.quiz_combo_box.setEditable(True)
         self.quiz_combo_box.setCurrentText('')
         self.quiz_combo_box.currentTextChanged.connect(self.on_quiz_number_change)
 
@@ -537,8 +542,7 @@ class ControlQuizWindow(Window):
                                      f'Вы действительно хотите удалить квиз\n{quiz_id} {self.name_editbox.text()}?',
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
-            index = self.quiz.get_index_by_id(quiz_id)
-            del self.quiz[index]
+            del self.quiz[quiz_id]
             self.quiz_list = self.quiz.get_id_list()
             self.name_editbox.setText('')
             self.sound_checkbox.setChecked(True)
@@ -921,6 +925,109 @@ class CreateChangeQuizWindow(Window):
         self.open_control_quiz_window()
 
 
+class ControlUserWindow(Window):
+    def __init__(self):
+        super().__init__('Участники', 500, 250)
+        self.users = User()
+        self.setUpWindow()
+
+    def setUpWindow(self):
+        user_label = Label('Участник')
+        user_h_layout = QHBoxLayout()
+        user_h_layout.addWidget(user_label)
+
+        user_list = self.users.get_name_list()
+        self.user_combo_box = ComboList(editable=True)
+        self.user_combo_box.addItems(user_list)
+        self.user_combo_box.setCurrentText('')
+        self.user_combo_box.currentTextChanged.connect(self.on_user_name_change)
+        user_h_layout.addWidget(self.user_combo_box)
+
+        self.user_quizzes_label = SmallLabel('Пройдено квиз:')
+        self.user_answers_label = SmallLabel('Правильных ответов:')
+
+        info_v_box = QVBoxLayout()
+        info_v_box.addWidget(self.user_quizzes_label)
+        info_v_box.addWidget(self.user_answers_label)
+
+        info_group = Group('Информация')
+        info_group.setLayout(info_v_box)
+
+        self.create_button = Button('Создать')
+        self.delete_button = Button('Удалить')
+        self.create_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
+        self.create_button.clicked.connect(self.on_create_user_button)
+        self.delete_button.clicked.connect(self.on_delete_user_button)
+        buttons_h_layout = QHBoxLayout()
+        buttons_h_layout.addWidget(self.create_button)
+        buttons_h_layout.addWidget(self.delete_button)
+
+        button_back = Button('Главное окно')
+        button_back.clicked.connect(self.open_main_window)
+
+        main_v_layout = QVBoxLayout()
+        main_v_layout.addLayout(user_h_layout)
+        main_v_layout.addWidget(info_group)
+        main_v_layout.addLayout(buttons_h_layout)
+        main_v_layout.addWidget(button_back)
+        self.setLayout(main_v_layout)
+        self.user_info()
+
+    def open_main_window(self):
+        self.window = WelcomeWindow()
+        self.window.show()
+        self.close()
+
+    def on_user_name_change(self, name: str):
+        user_list = self.users.get_name_list()
+        self.create_button.setEnabled(bool(name and not name in user_list))
+        self.delete_button.setEnabled(bool(name and name in user_list))
+        self.user_info()
+
+    def on_create_user_button(self):
+        name = self.user_combo_box.currentText()
+        self.user_combo_box.addItem(name)
+        self.users.add_user(name)
+        self.user_combo_box.setCurrentText('')
+
+    def on_delete_user_button(self):
+        name = self.user_combo_box.currentText()
+        reply = QMessageBox.question(self, 'Удаление участника',
+                                     f'Вы действительно хотите удалить участника\n{name}?\nВсе данные по нему будут удалены!',
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            del self.users[name]
+            self.users.save()
+            self.user_combo_box.clear()
+            self.user_combo_box.addItems(self.users.get_name_list())
+            self.user_combo_box.setCurrentText('')
+
+    def user_info(self):
+        name = self.user_combo_box.currentText()
+        selected_user = self.users[name]
+        color = 'blue'
+        if selected_user:
+            answered, total = self.users.get_total_score(name)
+            percent = count_percent(answered, total)
+            self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
+            self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
+            color = 'green'
+            if 90 <= percent < 100:
+                color = 'orange'
+            elif total > answered:
+                color = 'red'
+        else:
+            if name:
+                self.user_quizzes_label.setText('Новый участник')
+            else:
+                color = 'red'
+                self.user_quizzes_label.setText('Участник не указан')
+            self.user_answers_label.setText('')
+        for widget in [self.user_quizzes_label, self.user_answers_label]:
+            change_style(widget, 'color', color)
+
+
 class User:
     def __init__(self, user_id=None):
         self.users = self.load()
@@ -934,6 +1041,12 @@ class User:
     def __getitem__(self, user_id):
         user = list(filter(lambda x: x['name'] == user_id, self.users))
         return user[0] if user else {}
+
+    def __delitem__(self, index):
+        if isinstance(index, str):
+            del self.users[self.get_index_by_name(index)]
+        else:
+            del self.users[index]
 
     def __str__(self):
         return self.name
@@ -952,6 +1065,16 @@ class User:
             return answered, total
         else:
             return 0, -1
+
+    def get_index_by_name(self, name: str):
+        index_list = list(filter(lambda q: q[1]['name'] == name, enumerate(self.users)))
+        return index_list[0][0] if index_list else None
+
+    def add_user(self, name, save=True):
+        if not name in self.get_name_list():
+            self.users.append({'name': name, 'results': {}})
+            if save:
+                self.save()
 
     def remove_quiz(self, quiz_id: str, save=True):
         for user in self.users:
@@ -997,6 +1120,12 @@ class Quiz:
             quiz['playsound'] = playsound
         quiz['questions'] = questions
 
+    def __delitem__(self, index):
+        if isinstance(index, str):
+            del self.quizzes[self.get_index_by_id(index)]
+        else:
+            del self.quizzes[index]
+
     def __str__(self):
         return (self.quiz_id + ' ' + self.name).strip()
 
@@ -1008,9 +1137,6 @@ class Quiz:
 
     def __iter__(self):
         yield from self.quizzes
-
-    def __delitem__(self, index):
-        del self.quizzes[index]
 
     def get_index_by_id(self, quiz_id: str):
         index_list = list(filter(lambda q: q[1]['id'] == quiz_id, enumerate(self.quizzes)))
@@ -1040,12 +1166,6 @@ class Quiz:
 
 def count_percent(n: int, total: int) -> float:
     return 0 if total == 0 else round(n / total * 100, 2)
-
-
-def get_filtered_data(key: str, value: str, data: list) -> dict:
-    """Filter for dict:\n
-    data[key] == value in source dict"""
-    return list(filter(lambda x: x[key] == value, data))[0]
 
 
 # Unhandled exception interceptor

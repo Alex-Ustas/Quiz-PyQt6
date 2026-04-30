@@ -133,10 +133,11 @@ class Group(QGroupBox):
 
 
 class ComboList(QComboBox):
-    def __init__(self, fixed_width=0, fixed_height=30):
+    def __init__(self, fixed_width=0, fixed_height=30, editable=False):
         super().__init__()
         self.setStyleSheet('color: #203764; font-size: 16px')
         self.setMaxVisibleItems(10)
+        self.setEditable(editable)
         if fixed_width:
             self.setFixedWidth(fixed_width)
         if fixed_height:

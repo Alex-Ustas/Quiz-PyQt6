@@ -1,7 +1,6 @@
 # TODO:
 #   - QuizWindow: scrollbar
 #   - CreateChangeQuizWindow: scrollbar
-#   - ControlUserWindow: add statistic for participants
 #   - add parameter weight for quiz
 
 import sys, pygame
@@ -398,7 +397,7 @@ class ResultWindow(Window):
         attempt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         change_style(attempt_label, 'color', 'green')
 
-        answered, total = self.user.get_total_score()
+        answered, total, _ = self.user.get_total_score()
         answered += self.score[0]
         total += self.score[1]
         percent = count_percent(answered, total)
@@ -940,8 +939,12 @@ class CreateChangeQuizWindow(Window):
 
 class ControlUserWindow(Window):
     def __init__(self):
-        super().__init__('Участники', 500, 250)
+        super().__init__('Участники', 550, 530)
         self.users = User()
+        self.quizzes = Quiz()
+        self.history = []
+        self.start_index = 0
+        self.max_items = 7
         self.setUpWindow()
 
     def setUpWindow(self):
@@ -959,12 +962,31 @@ class ControlUserWindow(Window):
         self.user_quizzes_label = SmallLabel('Пройдено квиз:')
         self.user_answers_label = SmallLabel('Правильных ответов:')
 
-        info_v_box = QVBoxLayout()
-        info_v_box.addWidget(self.user_quizzes_label)
-        info_v_box.addWidget(self.user_answers_label)
+        info_v_layout = QVBoxLayout()
+        info_v_layout.addWidget(self.user_quizzes_label)
+        info_v_layout.addWidget(self.user_answers_label)
 
-        info_group = Group('Информация')
-        info_group.setLayout(info_v_box)
+        info_group = Group('Общая информация', fixed_height=80)
+        info_group.setLayout(info_v_layout)
+
+        self.history_v_layout = QVBoxLayout()
+
+        self.history_up_button = Button('', fixed_width=50)
+        self.history_up_button.setIcon(QIcon('images/arrow-up.png'))
+        self.history_up_button.clicked.connect(self.on_history_up_button)
+        self.history_down_button = Button('', fixed_width=50)
+        self.history_down_button.setIcon(QIcon('images/arrow-down.png'))
+        self.history_down_button.clicked.connect(self.on_history_down_button)
+        history_v_buttons_layout = QVBoxLayout()
+        history_v_buttons_layout.addWidget(self.history_up_button)
+        history_v_buttons_layout.addStretch()
+        history_v_buttons_layout.addWidget(self.history_down_button)
+
+        history_h_layout = QHBoxLayout()
+        history_h_layout.addLayout(self.history_v_layout)
+        history_h_layout.addLayout(history_v_buttons_layout)
+        history_group = Group('История')
+        history_group.setLayout(history_h_layout)
 
         self.create_button = Button('Создать')
         self.delete_button = Button('Удалить')
@@ -982,6 +1004,7 @@ class ControlUserWindow(Window):
         main_v_layout = QVBoxLayout()
         main_v_layout.addLayout(user_h_layout)
         main_v_layout.addWidget(info_group)
+        main_v_layout.addWidget(history_group)
         main_v_layout.addLayout(buttons_h_layout)
         main_v_layout.addWidget(button_back)
         self.setLayout(main_v_layout)
@@ -996,6 +1019,7 @@ class ControlUserWindow(Window):
         user_list = self.users.get_name_list()
         self.create_button.setEnabled(bool(name and not name in user_list))
         self.delete_button.setEnabled(bool(name and name in user_list))
+        self.start_index = 0
         self.user_info()
 
     def on_create_user_button(self):
@@ -1018,11 +1042,11 @@ class ControlUserWindow(Window):
 
     def user_info(self):
         name = self.user_combo_box.currentText()
-        selected_user = self.users[name]
+        selected_user = User(name)
         color = 'blue'
-        if selected_user:
+        if selected_user.user:
             answered, total, percent = self.users.get_total_score(name)
-            self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
+            self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user.results)}')
             self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
             color = 'green'
             if 90 <= percent < 100:
@@ -1038,6 +1062,57 @@ class ControlUserWindow(Window):
             self.user_answers_label.setText('')
         for widget in [self.user_quizzes_label, self.user_answers_label]:
             change_style(widget, 'color', color)
+
+        # history
+        self.delete_widgets(self.history_v_layout)
+        if selected_user.user:
+            self.history = []
+            for quiz_id, results in selected_user.results.items():
+                answered = sum([case[0] for case in results])
+                total = sum([case[1] for case in results])
+                name = self.quizzes[quiz_id]['name']
+                name = name if len(name + quiz_id) < 35 else name[:35 - len(quiz_id)] + '...'
+                self.history.append([quiz_id, name, answered, total, len(results)])
+            self.history.reverse()
+            flag = len(self.history) > self.max_items
+            self.history_up_button.setVisible(flag)
+            self.history_down_button.setVisible(flag)
+            if flag:
+                self.enable_history_buttons()
+            self.show_history()
+        else:
+            self.history_up_button.setVisible(False)
+            self.history_down_button.setVisible(False)
+
+    def show_history(self):
+        if self.max_items >= len(self.history):
+            history = self.history
+        else:
+            history = self.history[self.start_index:self.start_index + self.max_items]
+        for i in range(min(self.max_items, len(history))):
+            h = history[i]
+            history_progress_bar = ProgressBar()
+            percent = count_percent(h[2], h[3])
+            text = f'{h[0]} {h[1]}, попытки: {h[4]}, {h[2]} из {h[3]} ({percent}%)'
+            history_progress_bar.set_values(h[2], h[3] - h[2], h[3], text)
+            self.history_v_layout.addWidget(history_progress_bar)
+        self.history_v_layout.addStretch()
+
+    def enable_history_buttons(self):
+        self.history_up_button.setEnabled(self.start_index > 0)
+        self.history_down_button.setEnabled(self.start_index + self.max_items < len(self.history))
+
+    def on_history_up_button(self):
+        self.start_index -= 1
+        self.delete_widgets(self.history_v_layout)
+        self.show_history()
+        self.enable_history_buttons()
+
+    def on_history_down_button(self):
+        self.start_index += 1
+        self.delete_widgets(self.history_v_layout)
+        self.show_history()
+        self.enable_history_buttons()
 
 
 class User:

@@ -1,7 +1,8 @@
 # TODO:
 #   - QuizWindow: scrollbar
 #   - CreateChangeQuizWindow: scrollbar
-#   - participants
+#   - ControlUserWindow: add statistic for participants
+#   - add parameter weight for quiz
 
 import sys, pygame
 import loader
@@ -29,11 +30,14 @@ class WelcomeWindow(Window):
         button_control_quiz.clicked.connect(self.open_control_quiz_window)
         button_users = Button('Участники')
         button_users.clicked.connect(self.open_control_user_window)
+        button_about = Button('О программе')
+        button_about.clicked.connect(self.on_click_about)
 
         main_v_layout = QVBoxLayout()
         main_v_layout.addWidget(button_run_quiz)
         main_v_layout.addWidget(button_control_quiz)
         main_v_layout.addWidget(button_users)
+        main_v_layout.addWidget(button_about)
         self.setLayout(main_v_layout)
 
     def open_select_quiz_window(self):
@@ -50,6 +54,15 @@ class WelcomeWindow(Window):
         self.window = ControlUserWindow()
         self.window.show()
         self.close()
+
+    def on_click_about(self):
+        html_text = """
+        <h3><p><b>Автор:</b> Фадеичев Александр</p></h3>
+        <p><b>Telegram:</b> @AlexUstas0</p>
+        <p><b>email:</b> alex.ustas@internet.ru</p>
+        <p><b>Версия:</b> 1.0 (2026.04)</p>
+        """
+        reply = QMessageBox.information(self, 'О программе', html_text)
 
 
 class SelectQuizWindow(Window):
@@ -142,8 +155,7 @@ class SelectQuizWindow(Window):
         if index:
             user_id = self.user_combo_box.itemText(index)
             selected_user = self.users[user_id]
-            answered, total = self.users.get_total_score(user_id)
-            percent = count_percent(answered, total)
+            answered, total, percent = self.users.get_total_score(user_id)
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
             self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
             if 90 <= percent < 100:
@@ -799,6 +811,7 @@ class CreateChangeQuizWindow(Window):
 
         self.show_answer()
         self.check_data_before_save()
+        self.answer_type_list.setEnabled(len(self.question['choices']) == 0)
 
     def on_radio_button_select(self):
         self.question['A'] = str(self.radio_group.checkedId())
@@ -1008,8 +1021,7 @@ class ControlUserWindow(Window):
         selected_user = self.users[name]
         color = 'blue'
         if selected_user:
-            answered, total = self.users.get_total_score(name)
-            percent = count_percent(answered, total)
+            answered, total, percent = self.users.get_total_score(name)
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user["results"])}')
             self.user_answers_label.setText(f'Правильных ответов {answered} из {total} ({percent:.2f}%)')
             color = 'green'
@@ -1062,9 +1074,9 @@ class User:
         if user:
             answered = sum([rank[0] for quiz in user['results'].values() for rank in quiz])
             total = sum([rank[1] for quiz in user['results'].values() for rank in quiz])
-            return answered, total
+            return answered, total, count_percent(answered, total)
         else:
-            return 0, -1
+            return 0, 0, 0
 
     def get_index_by_name(self, name: str):
         index_list = list(filter(lambda q: q[1]['name'] == name, enumerate(self.users)))

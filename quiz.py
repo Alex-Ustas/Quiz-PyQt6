@@ -1,5 +1,5 @@
 # TODO:
-#   - QuizWindow: scrollbar
+#   - QuizWindow: scrollbar for answer
 #   - CreateChangeQuizWindow: scrollbar
 #   - add parameter weight for quiz
 
@@ -9,7 +9,7 @@ from random import shuffle
 from copy import deepcopy
 from widget_settings import *
 
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QMessageBox
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QMessageBox, QScrollArea
 from PyQt6.QtCore import Qt
 
 QUIZ_DATA = 'data/quiz.json'
@@ -55,8 +55,10 @@ class WelcomeWindow(Window):
         self.close()
 
     def on_click_about(self):
-        html_text = """
-        <h3><p><b>Автор:</b> Фадеичев Александр</p></h3>
+        name = [1060, 1072, 1076, 1077, 1080, 1095, 1077, 1074, 32, 1040, 1083, 1077, 1082, 1089, 1072, 1085, 1076, 1088]
+        fio = ''.join([chr(c) for c in name])
+        html_text = f"""
+        <h3><p><b>Автор:</b> {fio}</p></h3>
         <p><b>Telegram:</b> @AlexUstas0</p>
         <p><b>email:</b> alex.ustas@internet.ru</p>
         <p><b>Версия:</b> 1.0 (2026.04)</p>
@@ -191,15 +193,22 @@ class QuizWindow(Window):
         self.setUpWindow()
 
     def setUpWindow(self):
+        # Question section
         self.question_label = LabelCode('Вопрос', fixed_height=0)
         self.question_label.setWordWrap(True)
 
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(self.question_label)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
         question_v_layout = QVBoxLayout()
-        question_v_layout.addWidget(self.question_label)
+        question_v_layout.addWidget(scroll_area)
         self.question_group = Group('Вопрос')
         self.question_group.setLayout(question_v_layout)
         self.question_group.setFixedHeight(255)
 
+        # Answer section
         self.answer_v_layout = QVBoxLayout()
         self.answer_group = Group('Выберите ответ')
         self.answer_group.setLayout(self.answer_v_layout)
@@ -208,12 +217,14 @@ class QuizWindow(Window):
         self.note_label.setWordWrap(True)
         self.note_label.setHidden(True)
 
+        # Confirm button section
         self.confirm_button = Button('Подтвердить', fixed_width=200)
         self.confirm_button.clicked.connect(self.on_click_confirm)
 
-        # Progress Bar
+        # Progress Bar section
         self.progressbar = ProgressBar()
 
+        # Main layout section
         main_v_layout = QVBoxLayout()
         main_v_layout.addWidget(self.question_group)
         main_v_layout.addWidget(self.answer_group)
@@ -1268,4 +1279,4 @@ if __name__ == '__main__':
     window = WelcomeWindow()
     window.show()
     sys.excepthook = excepthook
-    sys.exit(app.exec())  # запуск цикла приложения
+    sys.exit(app.exec())

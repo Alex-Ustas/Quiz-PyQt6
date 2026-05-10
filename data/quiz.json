@@ -6,7 +6,7 @@
     "questions": [
       {
         "type": 1,
-        "Q": "1 Test test\n2 test\n3 Lorem Ipsum \"Lorem Ipsum\" Lorem Ipsum Lorem Ipsum Lorem Ipsum\n4 Lorem Ipsum\n5 Lorem Ipsum\n6 Lorem Ipsum\n7 Lorem Ipsum\n8 Lorem Ipsum\n9 Lorem Ipsum\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789",
+        "Q": "1 Test test\n2 test\n3 Lorem Ipsum \"Lorem Ipsum\" Lorem Ipsum Lorem Ipsum Lorem Ipsum\n4 Lorem Ipsum\n5 Lorem Ipsum\n6 Lorem Ipsum\n7 Lorem Ipsum\n8 Lorem Ipsum\n9 Lorem Ipsum\n01234567890123456789012345678901234567890123456789012345678901234567890123456789\n11 Lorem Ipsum\n12 Lorem Ipsum\n13 Lorem Ipsum\n14 Lorem Ipsum",
         "choices": [
           "1 вывода данных на экран",
           "2 считывания данных с клавиатуры",
@@ -461,13 +461,13 @@
         "choices": [
           "0",
           "1",
-          "3",
           "2",
+          "3",
           "произойдет ошибка"
         ],
-        "A": "2",
+        "A": "3",
         "weight": 1,
-        "shuffle": true,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       },
@@ -1684,7 +1684,7 @@
         ],
         "A": "0",
         "weight": 1,
-        "shuffle": true,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       },
@@ -1701,7 +1701,7 @@
         ],
         "A": "5",
         "weight": 1,
-        "shuffle": true,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       },
@@ -1718,7 +1718,7 @@
         ],
         "A": "3",
         "weight": 1,
-        "shuffle": true,
+        "shuffle": false,
         "show_result": true,
         "note": ""
       },
@@ -3432,6 +3432,148 @@
           "глобальные переменные облегчают отладку программы"
         ],
         "A": "0;1;2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      }
+    ]
+  },
+  {
+    "id": "23",
+    "name": "Функции с возвратом",
+    "playsound": true,
+    "questions": [
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef double(num):\n    return num * 2\n\nprint(double(10))",
+        "choices": [
+          "10",
+          "20",
+          "double(10)",
+          "num * 2"
+        ],
+        "A": "1",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef triple(num):\n    num = num * 3\n\nprint(triple(4))",
+        "choices": [
+          "12",
+          "4",
+          "None",
+          "произойдёт ошибка",
+          "64"
+        ],
+        "A": "2",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": "Если мы явно не указываем функции, какое значение нужно вернуть, то по умолчанию будет возвращено значение None. 😀"
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef date_format(day, month, year):\n    return f'{year}-{month}-{day}'\n    return f'{day}.{month}.{year}'\n\nprint(date_format(26, 11, 2025))",
+        "choices": [
+          "2025-11-26",
+          "26.11.2025",
+          "2025-11-26\n26.11.2025",
+          "26.11.2025\n2025-11-26",
+          "None",
+          "произойдёт ошибка"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef is_promocode_applicable(order_total, orders_number):\n    if order_total > 1000 and orders_number == 0:\n        return 'YES'\n    else:\n        return 'NO'\n\nprint(is_promocode_applicable(2499, 1))",
+        "choices": [
+          "YES",
+          "NO",
+          "None",
+          "YES\nNO",
+          "NO\nYES",
+          "произойдёт ошибка"
+        ],
+        "A": "1",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef is_even(num):\n    return num % 2 == 0\n\nprint(is_even(5))\nprint(is_even(6))",
+        "choices": [
+          "True\nFalse",
+          "False\nTrue",
+          "False\nFalse",
+          "True\nTrue",
+          "None\nNone",
+          "произойдёт ошибка"
+        ],
+        "A": "1",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef get_highest(names, heights):\n    max_height = max(heights)\n    index_max_height = heights.index(max_height)\n    return names[index_max_height]\n\nprint(get_highest(['Катя', 'Полина', 'Святослав', 'Андрей', 'Сима'],\n                  [1.41, 1.44, 1.38, 1.51, 1.18]))",
+        "choices": [
+          "1.51",
+          "1.41",
+          "3",
+          "4",
+          "Андрей",
+          "Полина",
+          "Сима",
+          "None",
+          "произойдёт ошибка"
+        ],
+        "A": "4",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 1,
+        "Q": "Что покажет приведённый ниже код?\n\ndef get_min_max(numbers):\n    return min(numbers), max(numbers)\n\na, b = get_min_max([7, 2, 41, 8, 152, 3, 12])\nprint(a, b)",
+        "choices": [
+          "2 152",
+          "152 2",
+          "None",
+          "произойдёт ошибка"
+        ],
+        "A": "0",
+        "weight": 1,
+        "shuffle": true,
+        "show_result": true,
+        "note": ""
+      },
+      {
+        "type": 2,
+        "Q": "Выберите верные утверждения.",
+        "choices": [
+          "сложные математические выражения иногда можно упрощать путем помещения части кода в функцию",
+          "функция в Python может возвращать более одного значения",
+          "в Python нельзя писать функции, которые принимают многочисленные аргументы",
+          "функции упрощают работу программистов в командах",
+          "вызов функции и определение функции означают одно и то же",
+          "имена функций должны быть максимально короткими",
+          "программный код в одной функции может обращаться к локальной переменной в другой функции"
+        ],
+        "A": "0;1;3",
         "weight": 1,
         "shuffle": true,
         "show_result": true,

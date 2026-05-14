@@ -21,9 +21,9 @@ def save_user_data(file: str, name: str, quiz: str, score: list):
         if data[i]['name'] == name:
             date_now = dt.now().strftime('%d.%m.%Y %H:%M')
             if quiz in data[i]['results']:
-                data[i]['results'][quiz].append([score[0], score[1], date_now])
+                data[i]['results'][quiz].append([score[0], score[1], score[2], score[3], date_now])
             else:
-                data[i]['results'][quiz] = [[score[0], score[1] , date_now]]
+                data[i]['results'][quiz] = [[score[0], score[1] , score[2], score[3], date_now]]
     with open(file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 

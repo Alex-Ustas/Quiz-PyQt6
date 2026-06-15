@@ -8,9 +8,14 @@ from random import shuffle
 from copy import deepcopy
 from widget_settings import *
 
+import json
+from typing import Dict, List, Any
+from datetime import datetime as dt
+
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QButtonGroup, QMessageBox, QScrollArea
 from PyQt6.QtCore import Qt
 
+VERSION = '2.00 (2026.06)'
 QUIZ_DATA = 'data/quiz.json'
 USER_DATA = 'data/user.json'
 RESULT_SOUND = ['data/giggle-22.wav', 'data/joyful.wav']
@@ -61,7 +66,7 @@ class WelcomeWindow(Window):
         <h3><p><b>Автор:</b> {fio}</p></h3>
         <p><b>Telegram:</b> @AlexUstas0</p>
         <p><b>email:</b> alex.ustas@internet.ru</p>
-        <p><b>Версия:</b> 1.01 (2026.05)</p>
+        <p><b>Версия:</b> {VERSION}</p>
         """
         reply = QMessageBox.information(self, 'О программе', html_text)
 
@@ -70,7 +75,8 @@ class SelectQuizWindow(Window):
     def __init__(self):
         super().__init__('Выбор квиза', 500, 380)
         self.quizzes = Quiz()
-        self.users = User()
+        self.users = UserManager()
+        self.selected_user = User('')
         self.setUpWindow()
 
     def setUpWindow(self):
@@ -89,7 +95,7 @@ class SelectQuizWindow(Window):
         self.quiz_combo_box.currentIndexChanged.connect(self.on_select_quiz)
         quiz_h_layout.addWidget(self.quiz_combo_box)
 
-        user_list = self.users.get_name_list()
+        user_list = self.users.get_all_names()
         user_list.insert(0, 'Выберите участника')
         self.user_combo_box = ComboList()
         self.user_combo_box.addItems(user_list)
@@ -133,7 +139,7 @@ class SelectQuizWindow(Window):
         self.close()
 
     def open_quiz_window(self):
-        self.window = QuizWindow(self.quiz_combo_box.currentText(), self.user_combo_box.currentText())
+        self.window = QuizWindow(self.quiz_combo_box.currentText(), self.selected_user)
         self.window.show()
         self.close()
 
@@ -157,18 +163,18 @@ class SelectQuizWindow(Window):
         color = 'green'
         if index:
             user_id = self.user_combo_box.itemText(index)
-            selected_user = User(user_id)
-            score = self.users.get_total_score_for_user(user_id)
+            self.selected_user = User(user_id, self.users.get_user_result(user_id))
+            score = self.selected_user.get_total_score()
             score_text = (f'Правильных ответов {score[0]} из {score[1]} ({score[4]:.2f}%), ' +
                           f'баллов {score[2]} из {score[3]} ({score[5]:.2f}%)')
-            self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user.results)}')
+            self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(self.selected_user.results)}')
             self.user_answers_label.setText(score_text)
             color = score[-1]
             if self.quiz_combo_box.currentIndex():
                 quiz_id = self.quiz_combo_box.currentText()
                 text = f'Квиз {quiz_id}: не пройдено'
-                if quiz_id in selected_user.results:
-                    results = selected_user.results[quiz_id]
+                if quiz_id in self.selected_user.results:
+                    results = self.selected_user.results[quiz_id]
                     best_result = [r for r in results if r[2] / r[3] == max([res[2] / res[3] for res in results])][0]
                     text = f'Квиз {quiz_id}: было попыток: {len(results)}, лучший результат {best_result[2]} из {best_result[3]}'
                 self.user_attempts_label.setText(text)
@@ -181,9 +187,9 @@ class SelectQuizWindow(Window):
 
 
 class QuizWindow(Window):
-    def __init__(self, quiz_id: str, user_id: str):
+    def __init__(self, quiz_id: str, user):
         self.quiz = Quiz(quiz_id)
-        self.user = User(user_id)
+        self.user = user
         self.question = 0  # question number
         self.answer_type = None  # answer type: 1 - radio, 2 - checkbox, 3 - editbox
         self.to_confirm = True  # switch for confirm button
@@ -341,7 +347,7 @@ class QuizWindow(Window):
             self.update_statusbar()
         else:  # next question
             if self.question == self.score[-1] - 1:  # open result window
-                self.window = ResultWindow(self.quiz.quiz_id, self.user.name, self.score)
+                self.window = ResultWindow(self.quiz.quiz_id, self.user, self.score[:4])
                 self.window.show()
                 self.close()
             else:  # remove current widgets and show next question
@@ -375,9 +381,9 @@ class QuizWindow(Window):
 
 
 class ResultWindow(Window):
-    def __init__(self, quiz_id: str, user_id: str, score: list[int]):
+    def __init__(self, quiz_id: str, user, score: List[int]):
         self.quiz = Quiz(quiz_id)
-        self.user = User(user_id)
+        self.user = user
         self.score = score
         self.max_score = score[0] == score[1]
         super().__init__('Результат', 400, 280)
@@ -413,7 +419,7 @@ class ResultWindow(Window):
         attempt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         change_style(attempt_label, 'color', 'green')
 
-        score = self.user.get_total_score_for_user()
+        score = self.user.get_total_score()
         for i in range(4):
             score[i] += self.score[i]
         percent = count_percent(score[0], score[1])
@@ -438,7 +444,8 @@ class ResultWindow(Window):
         main_v_layout.addWidget(button_back)
         self.setLayout(main_v_layout)
 
-        self.user.save_quiz_for_user(self.quiz.quiz_id, self.score)
+        users = UserManager()
+        users.save_quiz_for_user(self.user.name, self.quiz.quiz_id, self.score)
 
     @staticmethod
     def change_result_color(best_result: bool, percent: float, label):
@@ -585,8 +592,8 @@ class ControlQuizWindow(Window):
             self.quiz_combo_box.addItems(self.quiz_list)
             self.quiz_combo_box.setCurrentText('')
 
-            users = User()
-            users.remove_quiz(quiz_id)
+            users = UserManager()
+            users.remove_quiz_from_all(quiz_id)
             self.quiz.save()
 
 
@@ -964,7 +971,7 @@ class CreateChangeQuizWindow(Window):
 class ControlUserWindow(Window):
     def __init__(self):
         super().__init__('Участники', 550, 540)
-        self.users = User()
+        self.users = UserManager()
         self.quizzes = Quiz()
         self.history = []
         self.start_index = 0
@@ -977,7 +984,7 @@ class ControlUserWindow(Window):
         user_h_layout = QHBoxLayout()
         user_h_layout.addWidget(user_label)
 
-        user_list = self.users.get_name_list()
+        user_list = self.users.get_all_names()
         self.user_combo_box = ComboList(editable=True)
         self.user_combo_box.addItems(user_list)
         self.user_combo_box.setCurrentText('')
@@ -1044,7 +1051,7 @@ class ControlUserWindow(Window):
         self.close()
 
     def on_user_name_change(self, name: str):
-        user_list = self.users.get_name_list()
+        user_list = self.users.get_all_names()
         self.create_button.setEnabled(bool(name and not name in user_list))
         self.delete_button.setEnabled(bool(name and name in user_list))
         self.start_index = 0
@@ -1062,18 +1069,17 @@ class ControlUserWindow(Window):
                                      f'Вы действительно хотите удалить участника\n{name}?\nВсе данные по нему будут удалены!',
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
-            del self.users[name]
-            self.users.save()
+            self.users.remove_user(name)
             self.user_combo_box.clear()
-            self.user_combo_box.addItems(self.users.get_name_list())
+            self.user_combo_box.addItems(self.users.get_all_names())
             self.user_combo_box.setCurrentText('')
 
     def user_info(self):
         name = self.user_combo_box.currentText()
-        selected_user = User(name)
+        selected_user = User(name, self.users.get_user_result(name))
         color = 'blue'
-        if selected_user.user:
-            score = self.users.get_total_score_for_user(name)
+        if name in self.users.get_all_names():
+            score = selected_user.get_total_score()
             score_text = (f'Правильных ответов {score[0]} из {score[1]} ({score[4]:.2f}%), ' +
                           f'баллов {score[2]} из {score[3]} ({score[5]:.2f}%)')
             self.user_quizzes_label.setText(f'Участником пройдено квиз: {len(selected_user.results)}')
@@ -1091,7 +1097,7 @@ class ControlUserWindow(Window):
 
         # history
         self.delete_widgets(self.history_v_layout)
-        if selected_user.user:
+        if name in self.users.get_all_names():
             self.history = []
             for quiz_id, results in selected_user.results.items():
                 score = [sum([case[i] for case in results]) for i in range(4)]
@@ -1142,77 +1148,145 @@ class ControlUserWindow(Window):
 
 
 class User:
-    def __init__(self, user_id=None):
-        self.users = self.load()
-        self.user = self[user_id]
-        self.name = user_id if user_id else ''
-        self.results = self[user_id]['results'] if self.user else {}
+    """User defenition"""
 
-    def __len__(self):
-        return len(self.users)
+    def __init__(self, name: str, results=None):
+        self.name = name
+        self.results = results or {}
 
-    def __getitem__(self, user_id):
-        user = list(filter(lambda x: x['name'] == user_id, self.users))
-        return user[0] if user else {}
-
-    def __delitem__(self, index):
-        if isinstance(index, str):
-            del self.users[self.get_index_by_name(index)]
-        else:
-            del self.users[index]
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return repr(self.user)
-
-    def get_name_list(self):
-        return [self.users[i]['name'] for i in range(len(self))]
-
-    def get_total_score_for_user(self, name=None) -> list:
+    def get_total_score(self) -> List[Any]:
+        """Calculate total user score"""
         # score: correct answers, total answered, correct score, total score,
         # percent for questions, percent for score, color for result text
         score = [0, 0, 0, 0, 0, 0, 'green']
-        user = self[name] if name else self.user
-        if user:
-            for i in range(4):
-                score[i] = sum([rank[i] for quiz in user['results'].values() for rank in quiz])
-            percent = count_percent(score[2], score[3])
-            color = 'green'
-            if 90 <= percent < 100:
-                color = 'orange'
-            elif score[1] > score[0]:
-                color = 'red'
-            return score[:4] + [count_percent(score[0], score[1]), percent, color]
-        else:
+        if not self.results:
             return score
 
-    def get_index_by_name(self, name: str):
-        index_list = list(filter(lambda q: q[1]['name'] == name, enumerate(self.users)))
-        return index_list[0][0] if index_list else None
+        for i in range(4):
+            score[i] = sum(rank[i] for quiz in self.results.values() for rank in quiz)
 
-    def add_user(self, name, save=True):
-        if not name in self.get_name_list():
-            self.users.append({'name': name, 'results': {}})
-            if save:
-                self.save()
-
-    def remove_quiz(self, quiz_id: str, save=True):
-        for user in self.users:
-            user['results'].pop(quiz_id, None)
-        if save:
-            self.save()
+        percent_questions = count_percent(score[0], score[1])
+        percent_score = count_percent(score[2], score[3])
+        color = self._determine_color(percent_score, score)
+        return score[:4] + [percent_questions, percent_score, color]
 
     @staticmethod
-    def load():
-        return loader.get_json_data(USER_DATA)
+    def _determine_color(percent: float, score: List[int]) -> str:
+        """Determine color for user status"""
+        if 90 <= percent < 100:
+            return 'orange'
+        elif score[1] > score[0]:
+            return 'red'
+        return 'green'
 
-    def save(self):
-        loader.save_data(USER_DATA, self.users)
+    def add_quiz_result(self, quiz_id: str, score: List[int]) -> None:
+        """Add quiz result"""
+        self.results.setdefault(quiz_id, []).append(score + [dt.now().strftime('%d.%m.%Y %H:%M')])
 
-    def save_quiz_for_user(self, quiz_id: str, score: list):
-        loader.save_user_data(USER_DATA, self.name, quiz_id, score)
+    def remove_quiz(self, quiz_id: str) -> bool:
+        """Remove quiz result. Return True, if quiz has been removed."""
+        return self.results.pop(quiz_id, None) is not None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Transform object to dict for save"""
+        return {'name': self.name, 'results': self.results}
+
+    def __repr__(self) -> str:
+        return f"User(name='{self.name}', quizzes={len(self.results)})"
+
+
+class UserManager:
+    """Manager for work with users collection"""
+
+    def __init__(self, data_file=USER_DATA):
+        self.data_file = data_file
+        self._users: Dict[str, User] = {}  # Храним по имени для быстрого доступа
+        self._load_data()
+
+    def _load_data(self) -> None:
+        """Load data from json file"""
+        try:
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            self._users = {user['name']: User(user['name'], user.get('results', {})) for user in data}
+        except (FileNotFoundError, json.JSONDecodeError):
+            self._users = {}
+
+    def _save_data(self) -> None:
+        """Save data in json file"""
+        data = [user.to_dict() for user in self._users.values()]
+        with open(self.data_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def __len__(self) -> int:
+        return len(self._users)
+
+    def __getitem__(self, user_name: str) -> User:
+        if user_name not in self._users:
+            raise KeyError(f"User '{user_name}' not found")
+        return self._users[user_name]
+
+    def __delitem__(self, user_name: str) -> None:
+        if user_name in self._users:
+            del self._users[user_name]
+            self._save_data()
+        else:
+            raise KeyError(f"User '{user_name}' not found")
+
+    def __contains__(self, user_name: str) -> bool:
+        return user_name in self._users
+
+    def get_all_names(self) -> List[str]:
+        return list(self._users.keys())
+
+    def get_user_result(self, user_name: str) -> dict:
+        user = list(filter(lambda x: x[0] == user_name, self._users.items()))
+        if user:
+            return user[0][1].results
+        return {}
+
+    def add_user(self, name: str, save: bool = True) -> bool:
+        """
+        Add new user.
+        Return True, if user has been added successfully, False, if user already exists.
+        """
+        if name in self._users:
+            return False
+        self._users[name] = User(name)
+        if save:
+            self._save_data()
+        return True
+
+    def remove_user(self, user_name: str, save: bool = True) -> bool:
+        """Remove user. Return True, if user removed successfully."""
+        if user_name in self._users:
+            del self._users[user_name]
+            if save:
+                self._save_data()
+            return True
+        return False
+
+    def remove_quiz_from_all(self, quiz_id: str, save: bool = True) -> int:
+        """
+        Remove quiz from all users.
+        Returns the number of users who had the test removed.
+        """
+        count = 0
+        for user in self._users.values():
+            if user.remove_quiz(quiz_id):
+                count += 1
+        if save and count > 0:
+            self._save_data()
+        return count
+
+    def save_quiz_for_user(self, user_name: str, quiz_id: str, score: List[int], save: bool = True) -> bool:
+        """Save quiz result for user. Return True, if result has been saved successfully."""
+        if user_name not in self._users:
+            return False
+        self._users[user_name].add_quiz_result(quiz_id, score)
+        if save:
+            self._save_data()
+        return True
 
 
 class Quiz:

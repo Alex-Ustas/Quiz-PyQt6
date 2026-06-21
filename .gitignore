@@ -5,12 +5,8 @@
 
 # User-specific files
 *.xlsx
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
 temp*.py
+*test*.py
 backup/*.*
 
 # Python build & dist files
